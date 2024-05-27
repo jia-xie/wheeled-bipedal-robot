@@ -1,5 +1,6 @@
 #include "leg.h"
 #include "robot_param.h"
+#include "arm_math.h"
 
 void Leg_ForwardKinematics(Leg_t *leg, float phi1, float phi4, float phi1_dot, float phi4_dot)
 {
@@ -9,10 +10,10 @@ void Leg_ForwardKinematics(Leg_t *leg, float phi1, float phi4, float phi1_dot, f
     leg->phi4 = phi4;
     leg->phi4_dot = phi4_dot;
 
-    float x_B = -HALF_THIGH_DISTANCE + THIGH_LENGTH * cos(leg->phi1);
-    float y_B = THIGH_LENGTH * sin(leg->phi1);
-    float x_D = HALF_THIGH_DISTANCE + THIGH_LENGTH * cos(leg->phi4);
-    float y_D = THIGH_LENGTH * sin(leg->phi4);
+    float x_B = -HALF_THIGH_DISTANCE + THIGH_LENGTH * arm_cos_f32(leg->phi1);
+    float y_B = THIGH_LENGTH * arm_sin_f32(leg->phi1);
+    float x_D = HALF_THIGH_DISTANCE + THIGH_LENGTH * arm_cos_f32(leg->phi4);
+    float y_D = THIGH_LENGTH * arm_sin_f32(leg->phi4);
 
     float xD_minus_xB = x_D - x_B;
     float yD_minus_yB = y_D - y_B;
@@ -21,19 +22,19 @@ void Leg_ForwardKinematics(Leg_t *leg, float phi1, float phi4, float phi1_dot, f
     float B = 2 * CALF_LENGTH * yD_minus_yB;
     float C = pow(xD_minus_xB, 2) + pow(yD_minus_yB, 2);
 
-    leg->phi2 = 2 * atan2(B + sqrt(pow(A, 2) + pow(B, 2) - pow(C, 2)), A + C);
+    arm_atan2_f32(B + sqrt(pow(A, 2) + pow(B, 2) - pow(C, 2)), A + C, &leg->phi2);
+    leg->phi2 = leg->phi2 * 2;
+    float x_C = x_B + CALF_LENGTH * arm_cos_f32(leg->phi2);
+    float y_C = y_B + CALF_LENGTH * arm_sin_f32(leg->phi2);
 
-    float x_C = x_B + CALF_LENGTH * cos(leg->phi2);
-    float y_C = y_B + CALF_LENGTH * sin(leg->phi2);
-
-    leg->phi3 = atan2(y_C - y_D, x_C - x_D);
+    arm_atan2_f32(y_C - y_D, x_C - x_D, &leg->phi3);
 
     leg->xe1 = xD_minus_xB;
     leg->ye1 = yD_minus_yB;
     leg->xe2 = x_D;
     leg->ye2 = y_D;
     leg->length = sqrt(pow(x_C, 2) + pow(y_C, 2));
-    leg->phi0 = atan2(y_C, x_C);
+    arm_atan2_f32(y_C, x_C, & leg->phi0);
 
     leg->phi0_dot = (leg->phi0 - leg->last_phi0) / (0.004f);
 
@@ -53,9 +54,10 @@ void Leg_InverseKinematics(float height, float leg_angle, float *leg_1, float *l
     x_toe = -x_toe;
     float a_2 = 2 * (-HALF_THIGH_DISTANCE - x_toe) * THIGH_LENGTH;
     float c_2 = pow(-HALF_THIGH_DISTANCE - x_toe, 2) + pow(y_toe, 2) + pow(THIGH_LENGTH, 2) - pow(CALF_LENGTH, 2);
-
-    *leg_1 = 2 * atan2(-b + sqrt(pow(a_1, 2) + pow(b, 2) - pow(c_1, 2)), c_1 - a_1);
-    *leg_2 = -(2 * atan2(-b + sqrt(pow(a_2, 2) + pow(b, 2) - pow(c_2, 2)), c_2 - a_2) - PI);
+    arm_atan2_f32(-b + sqrt(pow(a_1, 2) + pow(b, 2) - pow(c_1, 2)), c_1 - a_1, leg_1);
+    *leg_1 = 2 * (*leg_1);
+    arm_atan2_f32(-b + sqrt(pow(a_2, 2) + pow(b, 2) - pow(c_2, 2)), c_2 - a_2, leg_2);
+    *leg_2 = -(2 * (*leg_2) - PI);
 }
 
 void Leg_VMC(Leg_t *leg, float force, float torq)
@@ -65,12 +67,12 @@ void Leg_VMC(Leg_t *leg, float force, float torq)
     float phi1 = leg->phi1;
     float phi4 = leg->phi4;
 
-    float sin_phi1 = sin(phi1);
-    float cos_phi1 = cos(phi1);
-    float sin_phi4 = sin(phi4);
-    float cos_phi4 = cos(phi4);
-    float sin_theta = sin(theta);
-    float cos_theta = cos(theta);
+    float sin_phi1 = arm_sin_f32(phi1);
+    float cos_phi1 = arm_cos_f32(phi1);
+    float sin_phi4 = arm_sin_f32(phi4);
+    float cos_phi4 = arm_cos_f32(phi4);
+    float sin_theta = arm_sin_f32(theta);
+    float cos_theta = arm_cos_f32(theta);
 
     float xC_minus_xB = (-leg_length * sin_theta) - (-HALF_THIGH_DISTANCE + THIGH_LENGTH * cos_phi1);
     float yC_minus_yB = (leg_length * cos_theta) - THIGH_LENGTH * sin_phi1;
