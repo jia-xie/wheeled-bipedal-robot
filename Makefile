@@ -1,7 +1,7 @@
 ######################################
 # target
 ######################################
-TARGET = control-base
+TARGET = wlb
 
 BOARD = typec
 
