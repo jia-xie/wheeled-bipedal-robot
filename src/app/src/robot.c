@@ -44,8 +44,8 @@ void Robot_Init()
 
     // Initialize all hardware
     Chassis_Task_Init();
-    Gimbal_Task_Init();
-    Launch_Task_Init();
+    // Gimbal_Task_Init();
+    // Launch_Task_Init();
     Remote_Init(&huart3);
     CAN_Service_Init();
     Referee_System_Init(&huart1);

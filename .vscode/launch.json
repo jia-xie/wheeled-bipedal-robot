@@ -4,7 +4,7 @@
         {
             "name": "dap (Win)",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}\\build\\control-base.elf",
+            "executable": "${workspaceRoot}\\build\\wlb.elf",
             "request": "launch",
             "type": "cortex-debug",
             "svdFile": "STM32F407.svd",
@@ -23,7 +23,7 @@
         {
             "name": "stlink (Win)",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}\\build\\control-base.elf",
+            "executable": "${workspaceRoot}\\build\\wlb.elf",
             "request": "launch",
             "type": "cortex-debug",
             "svdFile": "STM32F407.svd",
@@ -42,7 +42,7 @@
         {
             "name": "dap",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/build/control-base.elf",
+            "executable": "${workspaceRoot}/build/wlb.elf",
             "request": "launch",
             "type": "cortex-debug",
             "svdFile": "STM32F407.svd",
@@ -61,7 +61,7 @@
         {
             "name": "stlink",
             "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}\\build\\control-base.elf",
+            "executable": "${workspaceRoot}\\build\\wlb.elf",
             "request": "launch",
             "type": "cortex-debug",
             "svdFile": "STM32F407.svd",

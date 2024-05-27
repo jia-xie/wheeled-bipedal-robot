@@ -5,6 +5,8 @@
 
 #define SINGLE_MOTOR_CTRL_STD 0x140
 
+#define MG8016_TORQ_CONSTANT (2.9f)
+
 typedef struct MF_MOTOR_INFO
 {
     uint8_t enabled;

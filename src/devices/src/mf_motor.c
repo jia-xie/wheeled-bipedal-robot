@@ -4,8 +4,8 @@
 #include <stdlib.h>
 
 #pragma message "Check Max Device Number"
-#define MF_MAX_DEVICE (2)
-MF_Motor_Handle_t *g_mf_motors[MF_MAX_DEVICE] = {NULL};
+#define MF_MAX_DEVICE (6)
+MF_Motor_Handle_t *g_mf_motors[6] = {NULL};
 uint8_t g_mf_motor_num = 0;
 
 void MF_Motor_Decode(CAN_Instance_t *can_instance);
