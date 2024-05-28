@@ -129,4 +129,8 @@ void MF_Motor_PositionCtrl(MF_Motor_Handle_t *motor, int32_t pos);
  * @brief Global function to send the motor control data.
 */
 void MF_Motor_Send(void);
+
+void MF_Motor_Broadcast_Init(uint8_t can_bus);
+
+void MF_Motor_Broadcast_Torq_Ctrl(uint8_t can_bus, int16_t torq1, int16_t torq2, int16_t torq3, int16_t torq4);
 #endif

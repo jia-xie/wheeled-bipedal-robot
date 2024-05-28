@@ -61,8 +61,8 @@ void Robot_Ctrl_Loop()
     Referee_Get_Data();
     Referee_Set_Robot_State();
     Chassis_Ctrl_Loop();
-    Gimbal_Ctrl_Loop();
-    Launch_Ctrl_Loop();
+    // Gimbal_Ctrl_Loop();
+    // Launch_Ctrl_Loop();
 }
 /**
  *  B - Flywheel On Off

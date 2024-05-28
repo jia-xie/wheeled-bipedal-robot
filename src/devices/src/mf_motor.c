@@ -7,6 +7,11 @@
 #define MF_MAX_DEVICE (6)
 MF_Motor_Handle_t *g_mf_motors[6] = {NULL};
 uint8_t g_mf_motor_num = 0;
+CAN_Instance_t *g_mf_broadcast_can_instance[2] = {NULL};
+uint8_t g_mf_broadcast_can_instance_num = 0;
+uint8_t can1_broadcast_sending_flag = 0;
+uint8_t can2_broadcast_sending_flag = 0;
+
 
 void MF_Motor_Decode(CAN_Instance_t *can_instance);
 
@@ -37,6 +42,45 @@ MF_Motor_Handle_t *MF_Motor_Init(MF_Motor_Config_t config)
 
     g_mf_motors[g_mf_motor_num++] = motor;
     return motor;
+}
+
+void MF_Motor_Broadcast_Init(uint8_t can_bus)
+{
+    if (can_bus != 1 && can_bus != 2)
+    {
+        return;
+        // log error
+    }
+    // rx_id is a placeholder, it doesn't matter
+    CAN_Instance_t *can_instance = CAN_Device_Register(can_bus, 0x280, 0x280, MF_Motor_Decode);
+    g_mf_broadcast_can_instance[can_bus - 1] = can_instance;
+}
+
+void MF_Motor_Broadcast_Torq_Ctrl(uint8_t can_bus, int16_t torq1, int16_t torq2, int16_t torq3, int16_t torq4)
+{
+    uint8_t *tx_buffer = g_mf_broadcast_can_instance[can_bus - 1]->tx_buffer;
+    tx_buffer[0] = torq1 & 0xFF;
+    tx_buffer[1] = (torq1 >> 8) & 0xFF;
+    tx_buffer[2] = torq2 & 0xFF;
+    tx_buffer[3] = (torq2 >> 8) & 0xFF;
+    tx_buffer[4] = torq3 & 0xFF;
+    tx_buffer[5] = (torq3 >> 8) & 0xFF;
+    tx_buffer[6] = torq4 & 0xFF;
+    tx_buffer[7] = (torq4 >> 8) & 0xFF;
+
+    switch (can_bus)
+    {
+    case 1:
+        can1_broadcast_sending_flag = 1;
+        break;
+    case 2:
+        can2_broadcast_sending_flag = 1;
+        break;
+    default:
+    // log error
+        break;
+    }
+
 }
 
 void MF_Motor_Decode(CAN_Instance_t *can_instance)
@@ -238,5 +282,13 @@ void MF_Motor_Send(void)
             CAN_Transmit(g_mf_motors[i]->can_instance); // send the data
             g_mf_motors[i]->send_pending_flag = 0;      // clear the flag
         }
+    }
+    if (can1_broadcast_sending_flag == 1) {
+        CAN_Transmit(g_mf_broadcast_can_instance[0]);
+        can1_broadcast_sending_flag = 0;
+    }
+    if (can2_broadcast_sending_flag == 1) {
+        CAN_Transmit(g_mf_broadcast_can_instance[1]);
+        can2_broadcast_sending_flag = 0;
     }
 }

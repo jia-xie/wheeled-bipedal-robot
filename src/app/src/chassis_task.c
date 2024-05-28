@@ -4,6 +4,8 @@
 #include "mf_motor.h"
 #include "remote.h"
 #include "imu_task.h"
+#include "bsp_can.h"
+#include "five_bar_leg.h"
 
 extern Robot_State_t g_robot_state;
 extern Remote_t g_remote;
@@ -15,10 +17,12 @@ void Chassis_Hip_Motor_Torq_Ctrl(float torq_lf, float torq_rf, float torq_lb, fl
 
 void Chassis_Hip_Motor_Torq_Ctrl(float torq_lf, float torq_rf, float torq_lb, float torq_rb)
 {
-    MF_Motor_TorqueCtrl(g_motor_lf, torq_lf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f));
-    // MF_Motor_TorqueCtrl(g_motor_rf, torq_rf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f));
-    // MF_Motor_TorqueCtrl(g_motor_lb, torq_lb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f));
-    // MF_Motor_TorqueCtrl(g_motor_rb, torq_rb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f));
+    int16_t torq1 = torq_lf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
+    int16_t torq2 = torq_lb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
+    int16_t torq3 = torq_rb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
+    int16_t torq4 = torq_rf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
+
+    MF_Motor_Broadcast_Torq_Ctrl(1, torq1, torq2, torq3, torq4);
 }
 
 void Chassis_Task_Init()
@@ -47,15 +51,22 @@ void Chassis_Task_Init()
     motor_config.tx_id = 0x144;
     motor_config.rx_id = 0x144;
     g_motor_rf = MF_Motor_Init(motor_config);
+
+    MF_Motor_Broadcast_Init(1);
 }
 
 void Chassis_Ctrl_Loop()
 {
+
     if (g_robot_state.enabled) {
-        Chassis_Hip_Motor_Torq_Ctrl(0.5f, 0, 0, 0);
-        // Chassis_Hip_Motor_Torq_Ctrl(0.5f, 0, 0, 0);
+        Chassis_Hip_Motor_Torq_Ctrl(.5f, .5f, .5f, .5f);
     }
     else {
         Chassis_Hip_Motor_Torq_Ctrl(0.0f, 0, 0, 0);
     }
+}
+
+void Chassis_Kinematics_and_Dynamics()
+{
+    
 }
