@@ -48,6 +48,7 @@ void _get_leg_statistics();
 void _wheel_leg_estimation();
 void _leg_length_controller(float chassis_height);
 void _lqr_balancce_controller();
+void _vmc_torq_calc();
 
 void Chassis_Hip_Motor_Torq_Ctrl(float torq_lf, float torq_rf, float torq_lb, float torq_rb)
 {
@@ -95,7 +96,7 @@ void Chassis_Ctrl_Loop()
     if (g_robot_state.enabled) {
         _leg_length_controller(g_robot_state.chassis_height);
         _lqr_balancce_controller();
-        Chassis_Hip_Motor_Torq_Ctrl(.5f, .5f, .5f, .5f);
+        _vmc_torq_calc();
     }
     else {
         Chassis_Hip_Motor_Torq_Ctrl(0.0f, 0, 0, 0);
@@ -124,10 +125,16 @@ void _get_leg_statistics()
 
 void _leg_length_controller(float chassis_height)
 {
-    g_leg_left.force = PID(&g_pid_left_leg_length, g_leg_left.length); // + feedforward weight
-    g_leg_right.force = PID(&g_pid_left_leg_length, g_leg_right.length); // + feedforward weight
+    g_leg_left.force = PID(&g_pid_left_leg_length, chassis_height - g_leg_left.length); // + feedforward weight
+    g_leg_right.force = PID(&g_pid_left_leg_length, chassis_height - g_leg_right.length); // + feedforward weight
 }
 void _lqr_balancce_controller()
 {
     //g_leg_left.target_leg_virtual_torq = LQR11 * g_leg_left.current_disp + LQR12 * g_leg_left.current_vel + LQR13 * g_leg_left.current_theta + LQR14 * g_leg_left.current_theta_dot;
+}
+void _vmc_torq_calc()
+{
+    Leg_VMC(&g_leg_left);
+    Leg_VMC(&g_leg_right);
+    //Chassis_Hip_Motor_Torq_Ctrl(g_leg_left.torq1, g_leg_right.torq4, g_leg_left.torq1, g_leg_right.torq4);
 }
