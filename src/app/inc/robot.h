@@ -26,6 +26,9 @@ typedef struct {
   float vy;
   float vx_keyboard;
   float vy_keyboard;
+
+  /* Wheel Legged */
+  float chassis_height;
 } Robot_State_t;
 
 typedef struct {

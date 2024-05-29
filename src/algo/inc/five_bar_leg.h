@@ -32,6 +32,7 @@ typedef struct leg
 
     float xe1, xe2, ye1, ye2;
     float torq1, torq4;
+    float force, torq;
 
     float current_disp, current_vel, current_theta, current_theta_dot, last_theta;
     float target_leg_virtual_torq, target_wheel_torq;
@@ -40,5 +41,5 @@ typedef struct leg
 
 void Leg_ForwardKinematics(Leg_t *leg, float phi1, float phi2, float phi1_dot, float phi2_dot);
 void Leg_InverseKinematics(float height, float leg_angle, float *leg_1, float *leg_2);
-void Leg_VMC(Leg_t *leg, float force, float torq);
+void Leg_VMC(Leg_t *leg);
 #endif

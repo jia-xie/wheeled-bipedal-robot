@@ -60,7 +60,7 @@ void Leg_InverseKinematics(float height, float leg_angle, float *leg_1, float *l
     *leg_2 = -(2 * (*leg_2) - PI);
 }
 
-void Leg_VMC(Leg_t *leg, float force, float torq)
+void Leg_VMC(Leg_t *leg)
 {
     float leg_length = leg->length;
     float theta = leg->phi0 - PI / 2;
@@ -97,6 +97,6 @@ void Leg_VMC(Leg_t *leg, float force, float torq)
     float J21 = -one_over_deter * M21;
     float J22 = one_over_deter * M11;
 
-    leg->torq1 = J11 * force + J21 * torq;
-    leg->torq4 = J12 * force + J22 * torq;
+    leg->torq1 = J11 * leg->force + J21 * leg->torq;
+    leg->torq4 = J12 * leg->force + J22 * leg->torq;
 }
