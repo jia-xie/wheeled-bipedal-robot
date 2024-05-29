@@ -7,13 +7,30 @@
 #include "bsp_can.h"
 #include "five_bar_leg.h"
 
+/* Statistics */
+#define UP_ANGLE_ODD (-48.0f)
+#define UP_ANGLE_EVEN (180.0f - (-48.0f))
+#define UP_1 (58396.0f)
+#define UP_2 (17889.0f)
+#define UP_3 (51440.0f)
+#define UP_4 (22877.0f)
+
+#define DOWN_ANGLE_ODD (87.0f)
+#define DOWN_ANGLE_EVEN (180.0f - 87.0f)
+#define DOWN_1	(33540.0f)
+#define DOWN_2	(42464.0f)
+#define DOWN_3	(26586.0f)
+#define DOWN_4	(47774.0f)
+
 extern Robot_State_t g_robot_state;
 extern Remote_t g_remote;
 extern IMU_t g_imu;
 
 MF_Motor_Handle_t *g_motor_lf, *g_motor_rf, *g_motor_lb, *g_motor_rb;
+Leg_t g_leg_left, g_leg_right;
 
-void Chassis_Hip_Motor_Torq_Ctrl(float torq_lf, float torq_rf, float torq_lb, float torq_rb); 
+void _get_leg_statistics();
+void _wheel_leg_estimation();
 
 void Chassis_Hip_Motor_Torq_Ctrl(float torq_lf, float torq_rf, float torq_lb, float torq_rb)
 {
@@ -57,7 +74,7 @@ void Chassis_Task_Init()
 
 void Chassis_Ctrl_Loop()
 {
-
+    _wheel_leg_estimation();
     if (g_robot_state.enabled) {
         Chassis_Hip_Motor_Torq_Ctrl(.5f, .5f, .5f, .5f);
     }
@@ -66,7 +83,22 @@ void Chassis_Ctrl_Loop()
     }
 }
 
-void Chassis_Kinematics_and_Dynamics()
+void _wheel_leg_estimation()
 {
-    
+    _get_leg_statistics();
+    Leg_ForwardKinematics(&g_leg_left, g_leg_left.phi1, g_leg_left.phi4, g_leg_left.phi1_dot, g_leg_left.phi4_dot);
+    Leg_ForwardKinematics(&g_leg_right, g_leg_right.phi1, g_leg_right.phi4, g_leg_right.phi1_dot, g_leg_right.phi4_dot);
+}
+
+void _get_leg_statistics()
+{
+    g_leg_left.phi1 = (g_motor_lb->stats->angle - DOWN_2) * ((UP_ANGLE_EVEN - DOWN_ANGLE_EVEN)/(UP_2 - DOWN_2)) + DOWN_ANGLE_EVEN;
+    // g_leg_left.phi1_dot = g_motor_lb->stats->velocity;
+    g_leg_left.phi4 = (g_motor_lf->stats->angle - DOWN_1) * ((UP_ANGLE_ODD - DOWN_ANGLE_ODD)/(UP_1 - DOWN_1)) + DOWN_ANGLE_ODD;
+    // g_leg_left.phi4_dot = g_motor_lf->stats->velocity;
+
+    g_leg_right.phi1 = (g_motor_rf->stats->angle - DOWN_4) * ((UP_ANGLE_EVEN - DOWN_ANGLE_EVEN)/(UP_4 - DOWN_4)) + DOWN_ANGLE_EVEN;
+    // g_leg_right.phi1_dot = g_motor_rf->stats->velocity;
+    g_leg_right.phi4 = (g_motor_rb->stats->angle - DOWN_3) * ((UP_ANGLE_ODD - DOWN_ANGLE_ODD)/(UP_3 - DOWN_3)) + DOWN_ANGLE_ODD;
+    // g_leg_right.phi4_dot = g_motor_rb->stats->velocity;
 }
