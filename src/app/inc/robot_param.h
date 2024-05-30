@@ -21,16 +21,16 @@
 #define MAX_YAW_VEL PI
 
 /* Robot Stats*/
-#define HALF_THIGH_DISTANCE 0.035f
-#define THIGH_LENGTH 0.14f
-#define CALF_LENGTH 0.24f
+#define HALF_THIGH_DISTANCE 0.075f
+#define THIGH_LENGTH 0.15f
+#define CALF_LENGTH 0.27f
 #define TOE_WHEEL_RADIUS 0.06f // meter
 
 /* Limit */
 #define THIGH_ANG_RANGE 45.0f //degree
 
 /* Control */
-#define INIT_CHASSIS_HEIGHT 0.16//0.144f
+#define INIT_CHASSIS_HEIGHT 0.18//0.144f
 #define INIT_CHASSIS_ANGLE 90.0f
 
 #endif

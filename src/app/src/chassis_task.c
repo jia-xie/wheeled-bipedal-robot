@@ -6,6 +6,7 @@
 #include "imu_task.h"
 #include "bsp_can.h"
 #include "five_bar_leg.h"
+#include "wlb_lqr_controller.h"
 
 /* Statistics */
 #define UP_ANGLE_ODD (-48.0f)
@@ -22,43 +23,26 @@
 #define DOWN_3	(26586.0f)
 #define DOWN_4	(47774.0f)
 
-#define LQR11 (0.0f)
-#define LQR12 (0.0f)
-#define LQR13 (0.0f)
-#define LQR14 (0.0f)
-#define LQR15 (0.0f)
-#define LQR16 (0.0f)
-#define LQR21 (0.0f)
-#define LQR22 (0.0f)
-#define LQR23 (0.0f)
-#define LQR24 (0.0f)
-#define LQR25 (0.0f)
-#define LQR26 (0.0f)
+#define FOOT_MOTOR_MAX_TORQ (3.0f)
+#define FOOT_MF9025_MAX_TORQ_INT ((FOOT_MOTOR_MAX_TORQ / MF9025_TORQ_CONSTANT) / 16.5f * 2048.0f)
 
 extern Robot_State_t g_robot_state;
 extern Remote_t g_remote;
 extern IMU_t g_imu;
-
+uint8_t g_left_foot_initialized = 0;
+uint8_t g_right_foot_initialized = 0;
 MF_Motor_Handle_t *g_motor_lf, *g_motor_rf, *g_motor_lb, *g_motor_rb;
+MF_Motor_Handle_t *g_left_foot_motor, *g_right_foot_motor;
 Leg_t g_leg_left, g_leg_right;
-PID_t g_pid_left_leg_length;
-PID_t g_pid_right_leg_length;
+lqr_ss_t g_lqr_left_state, g_lqr_right_state = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+PID_t g_pid_left_leg_length, g_pid_left_leg_angle;
+PID_t g_pid_right_leg_length, g_pid_right_leg_angle;
 
 void _get_leg_statistics();
-void _wheel_leg_estimation();
+void _wheel_leg_estimation(float robot_pitch, float robot_pitch_dot);
 void _leg_length_controller(float chassis_height);
 void _lqr_balancce_controller();
 void _vmc_torq_calc();
-
-void Chassis_Hip_Motor_Torq_Ctrl(float torq_lf, float torq_rf, float torq_lb, float torq_rb)
-{
-    int16_t torq1 = torq_lf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
-    int16_t torq2 = torq_lb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
-    int16_t torq3 = torq_rb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
-    int16_t torq4 = torq_rf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
-
-    MF_Motor_Broadcast_Torq_Ctrl(1, torq1, torq2, torq3, torq4);
-}
 
 void Chassis_Task_Init()
 {
@@ -67,14 +51,6 @@ void Chassis_Task_Init()
         .can_bus = 1,
         .tx_id = 0x141,
         .rx_id = 0x141,
-        .control_mode = 0,
-        .kp_ang = 0.0f,
-        .ki_ang = 0.0f,
-        .kp_vel = 0.0f,
-        .ki_vel = 0.0f,
-        .kp_torq = 0.0f,
-        .ki_torq = 0.0f,
-        .pos_offset = 0.0f,
     };
     g_motor_lf = MF_Motor_Init(motor_config);
     motor_config.tx_id = 0x142;
@@ -87,46 +63,110 @@ void Chassis_Task_Init()
     motor_config.rx_id = 0x144;
     g_motor_rf = MF_Motor_Init(motor_config);
 
+    /* Foot Motor Init */
+    motor_config.tx_id = 0x147;
+    motor_config.rx_id = 0x147;
+    g_left_foot_motor = MF_Motor_Init(motor_config);
+    motor_config.tx_id = 0x148;
+    motor_config.rx_id = 0x148;
+    g_right_foot_motor = MF_Motor_Init(motor_config);
+
     MF_Motor_Broadcast_Init(1);
+    PID_Init(&g_pid_left_leg_length, 1000.0f, 0.0f, 0.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_right_leg_length, 1000.0f, 0.0f, 0.0f, 50.0f, 0.0f, 0.0f);
+
+    PID_Init(&g_pid_left_leg_angle, 30.0f, 0.0f, 0.0f, 10.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_right_leg_angle, 30.0f, 0.0f, 0.0f, 10.0f, 0.0f, 0.0f);
 }
 
-void Chassis_Ctrl_Loop()
+void _hip_motor_torq_ctrl(float torq_lf, float torq_lb, float torq_rb, float torq_rf)
 {
-    _wheel_leg_estimation();
-    if (g_robot_state.enabled) {
-        _leg_length_controller(g_robot_state.chassis_height);
-        _lqr_balancce_controller();
-        _vmc_torq_calc();
+    int16_t torq1 = torq_lf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
+    int16_t torq2 = torq_lb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
+    int16_t torq3 = torq_rb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
+    int16_t torq4 = torq_rf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
+    __MAX_LIMIT(torq1, -2000, 2000);
+    __MAX_LIMIT(torq2, -2000, 2000);
+    __MAX_LIMIT(torq3, -2000, 2000);
+    __MAX_LIMIT(torq4, -2000, 2000);
+    MF_Motor_Broadcast_Torq_Ctrl(1, torq1, torq2, torq3, torq4);
+}
+
+void _foot_motor_torq_ctrl(float torq_left, float torq_right)
+{
+    int16_t torq_left_int = torq_left / MF9025_TORQ_CONSTANT * (2048.0f / 16.5f);
+    int16_t torq_right_int = torq_right / MF9025_TORQ_CONSTANT * (2048.0f / 16.5f);
+    __MAX_LIMIT(torq_left, -FOOT_MF9025_MAX_TORQ_INT, FOOT_MF9025_MAX_TORQ_INT);
+    __MAX_LIMIT(torq_right, -FOOT_MF9025_MAX_TORQ_INT, FOOT_MF9025_MAX_TORQ_INT);
+    MF_Motor_TorqueCtrl(g_left_foot_motor, torq_left_int);
+    MF_Motor_TorqueCtrl(g_right_foot_motor, torq_right_int);
+}
+
+void _foot_motor_init_offset()
+{
+     // load the offset value when the robot start, this is for state space x to be 0 at startup
+    if (!g_left_foot_initialized)
+    {
+        if (g_left_foot_motor->stats->angle != 0)
+        {
+            g_left_foot_motor->angle_offset = g_left_foot_motor->stats->total_angle;
+            g_left_foot_initialized = 1;
+        }
     }
-    else {
-        Chassis_Hip_Motor_Torq_Ctrl(0.0f, 0, 0, 0);
+    if (!g_right_foot_initialized)
+    {
+        if (g_left_foot_motor->stats->angle != 0)
+        {
+            g_left_foot_motor->angle_offset = g_left_foot_motor->stats->total_angle;
+            g_left_foot_initialized = 1;
+        }
     }
 }
 
-void _wheel_leg_estimation()
+/**
+ * @brief Wheel leg estimation
+ * 
+ * @note robot pitch is in the positive direction, adjust sign and offset before passing into this function
+*/
+void _wheel_leg_estimation(float robot_pitch, float robot_pitch_dot)
 {
+    _foot_motor_init_offset();
     _get_leg_statistics();
     Leg_ForwardKinematics(&g_leg_left, g_leg_left.phi1, g_leg_left.phi4, g_leg_left.phi1_dot, g_leg_left.phi4_dot);
+    g_lqr_left_state.x          = g_left_foot_motor->stats->total_angle;
+    g_lqr_left_state.x_dot      = g_left_foot_motor->stats->velocity * DEG_TO_RAD;
+    g_lqr_left_state.theta      = g_leg_left.phi0 - PI/2 + robot_pitch;
+    g_lqr_left_state.theta_dot  = g_leg_left.phi0_dot + robot_pitch_dot;
+    g_lqr_left_state.phi        = robot_pitch;
+    g_lqr_left_state.phi_dot    = robot_pitch_dot;
     Leg_ForwardKinematics(&g_leg_right, g_leg_right.phi1, g_leg_right.phi4, g_leg_right.phi1_dot, g_leg_right.phi4_dot);
+    g_lqr_right_state.x          = -(g_left_foot_motor->stats->total_angle);
+    g_lqr_right_state.x_dot      = -(g_left_foot_motor->stats->velocity * DEG_TO_RAD);
+    g_lqr_right_state.theta      = -(g_leg_left.phi0 - PI/2 + robot_pitch);
+    g_lqr_right_state.theta_dot  = -(g_leg_left.phi0_dot + robot_pitch_dot);
+    g_lqr_right_state.phi        = -(robot_pitch);
+    g_lqr_right_state.phi_dot    = -(robot_pitch_dot);
 }
 
 void _get_leg_statistics()
 {
-    g_leg_left.phi1 = (g_motor_lb->stats->angle - DOWN_2) * ((UP_ANGLE_EVEN - DOWN_ANGLE_EVEN)/(UP_2 - DOWN_2)) + DOWN_ANGLE_EVEN;
+    g_leg_left.phi1 = ((g_motor_lb->stats->angle - DOWN_2) * ((UP_ANGLE_EVEN - DOWN_ANGLE_EVEN)/(UP_2 - DOWN_2)) + DOWN_ANGLE_EVEN) * DEG_TO_RAD;
     // g_leg_left.phi1_dot = g_motor_lb->stats->velocity;
-    g_leg_left.phi4 = (g_motor_lf->stats->angle - DOWN_1) * ((UP_ANGLE_ODD - DOWN_ANGLE_ODD)/(UP_1 - DOWN_1)) + DOWN_ANGLE_ODD;
+    g_leg_left.phi4 = ((g_motor_lf->stats->angle - DOWN_1) * ((UP_ANGLE_ODD - DOWN_ANGLE_ODD)/(UP_1 - DOWN_1)) + DOWN_ANGLE_ODD) * DEG_TO_RAD;
     // g_leg_left.phi4_dot = g_motor_lf->stats->velocity;
 
-    g_leg_right.phi1 = (g_motor_rf->stats->angle - DOWN_4) * ((UP_ANGLE_EVEN - DOWN_ANGLE_EVEN)/(UP_4 - DOWN_4)) + DOWN_ANGLE_EVEN;
+    g_leg_right.phi1 = ((g_motor_rf->stats->angle - DOWN_4) * ((UP_ANGLE_EVEN - DOWN_ANGLE_EVEN)/(UP_4 - DOWN_4)) + DOWN_ANGLE_EVEN) * DEG_TO_RAD;
     // g_leg_right.phi1_dot = g_motor_rf->stats->velocity;
-    g_leg_right.phi4 = (g_motor_rb->stats->angle - DOWN_3) * ((UP_ANGLE_ODD - DOWN_ANGLE_ODD)/(UP_3 - DOWN_3)) + DOWN_ANGLE_ODD;
+    g_leg_right.phi4 = ((g_motor_rb->stats->angle - DOWN_3) * ((UP_ANGLE_ODD - DOWN_ANGLE_ODD)/(UP_3 - DOWN_3)) + DOWN_ANGLE_ODD) * DEG_TO_RAD;
     // g_leg_right.phi4_dot = g_motor_rb->stats->velocity;
 }
 
 void _leg_length_controller(float chassis_height)
 {
-    g_leg_left.force = PID(&g_pid_left_leg_length, chassis_height - g_leg_left.length); // + feedforward weight
-    g_leg_right.force = PID(&g_pid_left_leg_length, chassis_height - g_leg_right.length); // + feedforward weight
+    g_leg_left.target_leg_virtual_force = PID(&g_pid_left_leg_length, chassis_height - g_leg_left.length); // + feedforward weight
+    g_leg_right.target_leg_virtual_force = PID(&g_pid_left_leg_length, chassis_height - g_leg_right.length); // + feedforward weight
+    g_leg_left.target_leg_virtual_torq = 0*PID(&g_pid_left_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_left.phi0);
+    g_leg_right.target_leg_virtual_torq = 0*PID(&g_pid_right_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_right.phi0);
 }
 void _lqr_balancce_controller()
 {
@@ -136,5 +176,26 @@ void _vmc_torq_calc()
 {
     Leg_VMC(&g_leg_left);
     Leg_VMC(&g_leg_right);
-    //Chassis_Hip_Motor_Torq_Ctrl(g_leg_left.torq1, g_leg_right.torq4, g_leg_left.torq1, g_leg_right.torq4);
+    //_hip_motor_torq_ctrl(g_leg_left.torq1, g_leg_right.torq4, g_leg_left.torq1, g_leg_right.torq4);
+}
+
+void Chassis_Disable()
+{
+    _hip_motor_torq_ctrl(0.0f, 0, 0, 0);
+    _foot_motor_torq_ctrl(0.0f, 0.0f);
+}
+
+void Chassis_Ctrl_Loop()
+{
+    _wheel_leg_estimation(-g_imu.rad.roll, -g_imu.bmi088_raw.gyro[0]);
+    g_robot_state.chassis_height = 0.18f;
+    _leg_length_controller(g_robot_state.chassis_height);
+    _lqr_balancce_controller();
+    _vmc_torq_calc();
+    if (g_robot_state.enabled) {
+        _hip_motor_torq_ctrl(-g_leg_left.torq4, -g_leg_left.torq1, -g_leg_right.torq4, -g_leg_right.torq1);
+    }
+    else {
+        Chassis_Disable();
+    }
 }

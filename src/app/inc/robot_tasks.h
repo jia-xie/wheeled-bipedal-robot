@@ -34,13 +34,13 @@ void Robot_Tasks_Daemon(void const *argument);
 
 void Robot_Tasks_Start()
 {
-    osThreadDef(imu_task, Robot_Tasks_IMU, osPriorityAboveNormal, 0, 1024);
+    osThreadDef(imu_task, Robot_Tasks_IMU, osPriorityAboveNormal, 0, 256);
     imu_task_handle = osThreadCreate(osThread(imu_task), NULL);
 
     osThreadDef(motor_task, Robot_Tasks_Motor, osPriorityAboveNormal, 0, 256);
     motor_task_handle = osThreadCreate(osThread(motor_task), NULL);
 
-    osThreadDef(robot_control_task, Robot_Tasks_Robot_Control, osPriorityAboveNormal, 0, 256);
+    osThreadDef(robot_control_task, Robot_Tasks_Robot_Control, osPriorityAboveNormal, 0, 2048);
     robot_control_task_handle = osThreadCreate(osThread(robot_control_task), NULL);
 
     osThreadDef(ui_task, Robot_Tasks_UI, osPriorityAboveNormal, 0, 256);

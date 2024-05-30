@@ -97,6 +97,6 @@ void Leg_VMC(Leg_t *leg)
     float J21 = -one_over_deter * M21;
     float J22 = one_over_deter * M11;
 
-    leg->torq1 = J11 * leg->force + J21 * leg->torq;
-    leg->torq4 = J12 * leg->force + J22 * leg->torq;
+    leg->torq1 = J11 * leg->target_leg_virtual_force + J21 * leg->target_leg_virtual_torq;
+    leg->torq4 = J12 * leg->target_leg_virtual_force + J22 * leg->target_leg_virtual_torq;
 }

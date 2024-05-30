@@ -30,6 +30,9 @@ MF_Motor_Handle_t *MF_Motor_Init(MF_Motor_Config_t config)
     motor->target_torq = 0;
     motor->stats->enabled = 0;
     motor->stats->angle = 0;
+    motor->stats->last_angle = 0;
+    motor->stats->total_angle = 0;
+    motor->stats->total_turn = 0;
     motor->stats->velocity = 0;
     motor->stats->current = 0;
     motor->stats->temp = 0;
@@ -112,10 +115,19 @@ void MF_Motor_Decode(CAN_Instance_t *can_instance)
         motor_info->velocity = (data[5] << 8) + data[4];
         motor_info->current = (data[3] << 8) + data[2];
         motor_info->temp = data[1];
-        break;
+
+        if (motor_info->angle - motor_info->last_angle > MF9025_HALF_MAX_TICKS)
+        {
+            motor_info->total_turn--;
+        }
+        else if (motor_info->angle - motor_info->last_angle < -MF9025_HALF_MAX_TICKS)
+        {
+            motor_info->total_turn++;
+        }
+        motor_info->total_angle = (motor_info->total_turn + motor_info->angle / MF9025_MAX_TICKS) * 2 * PI;
+        motor_info->last_angle = motor_info->angle;
     }
 }
-
 void MF_Motor_EnableMotor(MF_Motor_Handle_t *motor)
 {
     // store local pointer to avoid multiple dereference
