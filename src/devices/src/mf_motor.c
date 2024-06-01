@@ -297,7 +297,7 @@ void MF_Motor_Send(void)
     }
     if (can1_broadcast_sending_flag == 1) {
         CAN_Transmit(g_mf_broadcast_can_instance[0]);
-        can1_broadcast_sending_flag = 0;
+        // can1_broadcast_sending_flag = 0;
     }
     if (can2_broadcast_sending_flag == 1) {
         CAN_Transmit(g_mf_broadcast_can_instance[1]);

@@ -34,11 +34,11 @@ void Leg_ForwardKinematics(Leg_t *leg, float phi1, float phi4, float phi1_dot, f
     leg->xe2 = x_D;
     leg->ye2 = y_D;
     leg->length = sqrt(pow(x_C, 2) + pow(y_C, 2));
+    leg->last_phi0 = leg->phi0;
     arm_atan2_f32(y_C, x_C, & leg->phi0);
-
+#pragma message "jidegaihuiqv"
     leg->phi0_dot = (leg->phi0 - leg->last_phi0) / (0.002f);
 
-    leg->last_phi0 = leg->phi0;
     leg->last_tick = leg->current_tick;
 }
 
@@ -62,41 +62,54 @@ void Leg_InverseKinematics(float height, float leg_angle, float *leg_1, float *l
 
 void Leg_VMC(Leg_t *leg)
 {
-    float leg_length = leg->length;
-    float theta = leg->phi0 - PI / 2;
-    float phi1 = leg->phi1;
+    // float leg_length = leg->length;
+    // float theta = leg->phi0 - PI / 2;
+    // float phi1 = leg->phi1;
+    // float phi4 = leg->phi4;
+
+    // float sin_phi1 = arm_sin_f32(phi1);
+    // float cos_phi1 = arm_cos_f32(phi1);
+    // float sin_phi4 = arm_sin_f32(phi4);
+    // float cos_phi4 = arm_cos_f32(phi4);
+    // float sin_theta = arm_sin_f32(theta);
+    // float cos_theta = arm_cos_f32(theta);
+
+    // float xC_minus_xB = (-leg_length * sin_theta) - (-HALF_THIGH_DISTANCE + THIGH_LENGTH * cos_phi1);
+    // float yC_minus_yB = (leg_length * cos_theta) - THIGH_LENGTH * sin_phi1;
+    // float xC_minus_xD = (-leg_length * sin_theta) - (HALF_THIGH_DISTANCE + THIGH_LENGTH * cos_phi4);
+
+    // float yC_minus_yD = (leg_length * cos_theta) - THIGH_LENGTH * sin_phi4;
+
+    // float M11 = ((-sin_theta * xC_minus_xB + cos_theta * yC_minus_yB) /
+    //              (-sin_phi1 * xC_minus_xB + cos_phi1 * yC_minus_yB)) /
+    //             THIGH_LENGTH;
+    // float M12 = (leg_length / THIGH_LENGTH) * ((-cos_theta * xC_minus_xB - sin_theta * yC_minus_yB) /
+    //                                            (-sin_phi1 * xC_minus_xB + cos_phi1 * yC_minus_yB));
+    // float M21 = ((-sin_theta * xC_minus_xD + cos_theta * yC_minus_yD) /
+    //              (-sin_phi4 * xC_minus_xD + cos_phi4 * yC_minus_yD)) /
+    //             THIGH_LENGTH;
+    // float M22 = (leg_length / THIGH_LENGTH) * ((-cos_theta * xC_minus_xD - sin_theta * yC_minus_yD) /
+    //                                            (-sin_phi4 * xC_minus_xD + cos_phi4 * yC_minus_yD));
+
+    // float one_over_deter = 1 / (M11 * M22 - M12 * M21);
+    // float J11 = one_over_deter * M22;
+    // float J12 = -one_over_deter * M12;
+    // float J21 = -one_over_deter * M21;
+    // float J22 = one_over_deter * M11;
+
+    // leg->torq1 = J11 * leg->target_leg_virtual_force + J21 * leg->target_leg_virtual_torq;
+    // leg->torq4 = J12 * leg->target_leg_virtual_force + J22 * leg->target_leg_virtual_torq;
+    float phi0 = leg->phi0;
+    float phi3 = leg->phi3;
+    float phi2 = leg->phi2;
     float phi4 = leg->phi4;
+    float phi1 = leg->phi1;
 
-    float sin_phi1 = arm_sin_f32(phi1);
-    float cos_phi1 = arm_cos_f32(phi1);
-    float sin_phi4 = arm_sin_f32(phi4);
-    float cos_phi4 = arm_cos_f32(phi4);
-    float sin_theta = arm_sin_f32(theta);
-    float cos_theta = arm_cos_f32(theta);
+    float j11 = (THIGH_LENGTH*arm_sin_f32(phi0-phi3)*arm_sin_f32(phi1-phi2))/arm_sin_f32(phi3-phi2);
+    float j12 = (THIGH_LENGTH*arm_cos_f32(phi0-phi3)*arm_sin_f32(phi1-phi2))/leg->length*arm_sin_f32(phi3-phi2);
+    float j21 = (THIGH_LENGTH*arm_sin_f32(phi0-phi2)*arm_sin_f32(phi3-phi4))/arm_sin_f32(phi3-phi2);
+    float j22 = (THIGH_LENGTH*arm_cos_f32(phi0-phi2)*arm_sin_f32(phi3-phi4))/leg->length*arm_sin_f32(phi3-phi2);
 
-    float xC_minus_xB = (-leg_length * sin_theta) - (-HALF_THIGH_DISTANCE + THIGH_LENGTH * cos_phi1);
-    float yC_minus_yB = (leg_length * cos_theta) - THIGH_LENGTH * sin_phi1;
-    float xC_minus_xD = (-leg_length * sin_theta) - (HALF_THIGH_DISTANCE + THIGH_LENGTH * cos_phi4);
-
-    float yC_minus_yD = (leg_length * cos_theta) - THIGH_LENGTH * sin_phi4;
-
-    float M11 = ((-sin_theta * xC_minus_xB + cos_theta * yC_minus_yB) /
-                 (-sin_phi1 * xC_minus_xB + cos_phi1 * yC_minus_yB)) /
-                THIGH_LENGTH;
-    float M12 = (leg_length / THIGH_LENGTH) * ((-cos_theta * xC_minus_xB - sin_theta * yC_minus_yB) /
-                                               (-sin_phi1 * xC_minus_xB + cos_phi1 * yC_minus_yB));
-    float M21 = ((-sin_theta * xC_minus_xD + cos_theta * yC_minus_yD) /
-                 (-sin_phi4 * xC_minus_xD + cos_phi4 * yC_minus_yD)) /
-                THIGH_LENGTH;
-    float M22 = (leg_length / THIGH_LENGTH) * ((-cos_theta * xC_minus_xD - sin_theta * yC_minus_yD) /
-                                               (-sin_phi4 * xC_minus_xD + cos_phi4 * yC_minus_yD));
-
-    float one_over_deter = 1 / (M11 * M22 - M12 * M21);
-    float J11 = one_over_deter * M22;
-    float J12 = -one_over_deter * M12;
-    float J21 = -one_over_deter * M21;
-    float J22 = one_over_deter * M11;
-
-    leg->torq1 = J11 * leg->target_leg_virtual_force + J21 * leg->target_leg_virtual_torq;
-    leg->torq4 = J12 * leg->target_leg_virtual_force + J22 * leg->target_leg_virtual_torq;
+    leg->torq1 = j11 * leg->target_leg_virtual_force + j12 * leg->target_leg_virtual_torq;
+    leg->torq4 = j21 * leg->target_leg_virtual_force + j22 * leg->target_leg_virtual_torq;
 }

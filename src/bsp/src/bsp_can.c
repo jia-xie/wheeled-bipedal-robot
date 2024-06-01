@@ -106,7 +106,9 @@ HAL_StatusTypeDef CAN_Transmit(CAN_Instance_t *can_instance)
     // Wait for available mailbox
     while (HAL_CAN_GetTxMailboxesFreeLevel(hcanx) == 0);
     // Transmit the message
-    return HAL_CAN_AddTxMessage(hcanx, can_instance->tx_header, can_instance->tx_buffer, (uint32_t *)CAN_TX_MAILBOX0);
+    HAL_StatusTypeDef status = HAL_CAN_AddTxMessage(hcanx, can_instance->tx_header, can_instance->tx_buffer, (uint32_t *)CAN_TX_MAILBOX0);
+    while (HAL_CAN_GetTxMailboxesFreeLevel(hcanx) == 0);
+    return status;
 }
 
 /**

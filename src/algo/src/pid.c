@@ -46,3 +46,25 @@ float PID(PID_t *pid, float error)
 
     return pid->output;
 }
+
+float PID_dt(PID_t *pid, float error, float dt)
+{
+    if (fabs(error) < pid->dead_zone) error = 0;
+    pid->i_out += error * pid->ki;
+    pid->f_out = pid->kf * pid->ref;
+    __MAX_LIMIT(pid->i_out, -pid->integral_limit, pid->integral_limit);
+    __MAX_LIMIT(pid->f_out, -pid->feedforward_limit, pid->feedforward_limit);
+    pid->output = pid->kp * error + pid->i_out + pid->kd * (error - pid->prev_error)/dt + pid->f_out;
+    
+    pid->prev_error = error;
+    
+    if (pid->output >= pid->output_limit)
+    {
+        pid->output =  pid->output_limit;
+    } else if (pid->output <= -pid->output_limit)
+    {
+        pid->output = -pid->output_limit;
+    }
+
+    return pid->output;
+}
