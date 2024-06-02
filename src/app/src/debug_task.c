@@ -27,6 +27,7 @@ extern Daemon_Instance_t *g_remote_daemon;
 char g_debug_buffer[1024*2] = {0};
 #endif
 extern PID_t g_balance_angle_pid, g_balance_vel_pid;
+extern PID_t g_pid_anti_split;
 const char* top_border = "\r\n\r\n\r\n/***** System Info *****/\r\n";
 const char* bottom_border = "/***** End of Info *****/\r\n";
 extern lqr_u_t g_u_left, g_u_right;
@@ -60,6 +61,7 @@ void Debug_Task_Loop(void)
     
     DEBUG_PRINTF(&huart6, ">x_l:%f\n>x_dot_l:%f\n>theta_l:%f\n>theta_dot_l:%f\n>phi_l:%f\n>phi_dot_l:%f\n", g_lqr_left_state.x, g_lqr_left_state.x_dot, g_lqr_left_state.theta, g_lqr_left_state.theta_dot, g_lqr_left_state.phi, g_lqr_left_state.phi_dot);
     DEBUG_PRINTF(&huart6, ">x_r:%f\n>x_dot_r:%f\n>theta_r:%f\n>theta_dot_r:%f\n>phi_r:%f\n>phi_dot_r:%f\n", g_lqr_right_state.x, g_lqr_right_state.x_dot, g_lqr_right_state.theta, g_lqr_right_state.theta_dot, g_lqr_right_state.phi, g_lqr_right_state.phi_dot);
+    DEBUG_PRINTF(&huart6, ">anti:%f\n", g_pid_anti_split.output);
     // DEBUG_PRINTF(&huart6, ">pitch:%f\n>pid_vel:%f\n>pid_ang:%f\n", g_lqr_right_state.phi, g_balance_vel_pid.output, g_balance_angle_pid.output);
 #endif
 }

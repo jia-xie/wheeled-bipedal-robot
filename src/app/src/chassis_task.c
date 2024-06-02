@@ -31,6 +31,7 @@
 extern Robot_State_t g_robot_state;
 extern Remote_t g_remote;
 extern IMU_t g_imu;
+Chassis_t g_chassis;
 uint8_t g_left_foot_initialized = 0;
 uint8_t g_right_foot_initialized = 0;
 MF_Motor_Handle_t *g_motor_lf, *g_motor_rf, *g_motor_lb, *g_motor_rb;
@@ -41,6 +42,8 @@ lqr_u_t g_u_left, g_u_right;
 PID_t g_pid_left_leg_length, g_pid_left_leg_angle;
 PID_t g_pid_right_leg_length, g_pid_right_leg_angle;
 PID_t g_balance_angle_pid, g_balance_vel_pid;
+PID_t g_pid_yaw_angle;
+PID_t g_pid_anti_split;
 Leg_t test = {
         .phi1 = PI,
         .phi4 = 0,
@@ -48,7 +51,7 @@ Leg_t test = {
         .phi4_dot = 0,
     };
 void _get_leg_statistics();
-void _wheel_leg_estimation(float robot_pitch, float robot_pitch_dot);
+void _wheel_leg_estimation(float robot_yaw, float robot_pitch, float robot_pitch_dot);
 void _leg_length_controller(float chassis_height);
 void _lqr_balancce_controller();
 void _vmc_torq_calc();
@@ -81,8 +84,8 @@ void Chassis_Task_Init()
     g_right_foot_motor = MF_Motor_Init(motor_config);
 
     MF_Motor_Broadcast_Init(1);
-    PID_Init(&g_pid_left_leg_length, 1000.0f, 0.0f, 10.0f, 50.0f, 0.0f, 0.0f);
-    PID_Init(&g_pid_right_leg_length, 1000.0f, 0.0f, 10.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_left_leg_length, 1000.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_right_leg_length, 1000.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
 
     PID_Init(&g_pid_left_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
     PID_Init(&g_pid_right_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
@@ -90,6 +93,8 @@ void Chassis_Task_Init()
     PID_Init(&g_balance_angle_pid, 600.0f, 0.0f, .065f, 10.0f, 0.0f, 0.0f);
     PID_Init(&g_balance_vel_pid, 10.0f, 0.0f, 0.001f, 10.0f, 0.0f, 0.0f);
 
+    PID_Init(&g_pid_yaw_angle, 5.0f, 0.0f, 1.1f, 10.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_anti_split, 20.0f, 0.0f, 0.0f, 5.0f, 0.0f, 0.0f);
 }
 
 void _hip_motor_torq_ctrl(float torq_lf, float torq_lb, float torq_rb, float torq_rf)
@@ -141,10 +146,22 @@ void _foot_motor_init_offset()
  * 
  * @note robot pitch is in the positive direction, adjust sign and offset before passing into this function
 */
-void _wheel_leg_estimation(float robot_pitch, float robot_pitch_dot)
+void _wheel_leg_estimation(float robot_yaw, float robot_pitch, float robot_pitch_dot)
 {
     _foot_motor_init_offset();
     _get_leg_statistics();
+
+    if (robot_yaw - g_chassis.last_yaw_raw> PI)
+    {
+        g_chassis.total_turns -= 1;
+    }
+    else if (robot_yaw - g_chassis.last_yaw_raw < -PI)
+    {
+        g_chassis.total_turns += 1;
+    }
+    g_chassis.last_yaw_raw = robot_yaw;
+    g_chassis.current_yaw = robot_yaw + 2*PI*g_chassis.total_turns;
+
     Leg_ForwardKinematics(&g_leg_left, g_leg_left.phi1, g_leg_left.phi4, g_leg_left.phi1_dot, g_leg_left.phi4_dot);
     g_lqr_left_state.x          = -(g_left_foot_motor->stats->total_angle + g_left_foot_motor->angle_offset) * FOOT_WHEEL_RADIUS;
     g_lqr_left_state.x_dot      = -g_left_foot_motor->stats->velocity * DEG_TO_RAD * FOOT_WHEEL_RADIUS;
@@ -152,6 +169,7 @@ void _wheel_leg_estimation(float robot_pitch, float robot_pitch_dot)
     g_lqr_left_state.theta_dot  = -(g_leg_left.phi0_dot + robot_pitch_dot);
     g_lqr_left_state.phi        = robot_pitch;
     g_lqr_left_state.phi_dot    = robot_pitch_dot;
+    g_lqr_left_state.leg_len    = g_leg_left.length;
     Leg_ForwardKinematics(&g_leg_right, g_leg_right.phi1, g_leg_right.phi4, g_leg_right.phi1_dot, g_leg_right.phi4_dot);
     g_lqr_right_state.x          = (g_right_foot_motor->stats->total_angle + g_right_foot_motor->angle_offset) * FOOT_WHEEL_RADIUS;
     g_lqr_right_state.x_dot      = (g_right_foot_motor->stats->velocity * DEG_TO_RAD *  FOOT_WHEEL_RADIUS);
@@ -159,6 +177,7 @@ void _wheel_leg_estimation(float robot_pitch, float robot_pitch_dot)
     g_lqr_right_state.theta_dot  = -(-g_leg_right.phi0_dot + robot_pitch_dot);
     g_lqr_right_state.phi        = (robot_pitch);
     g_lqr_right_state.phi_dot    = (robot_pitch_dot);
+    g_lqr_right_state.leg_len    = g_leg_right.length;
 }
 
 void _get_leg_statistics()
@@ -176,11 +195,11 @@ void _get_leg_statistics()
 
 void _leg_length_controller(float chassis_height)
 {
-    // float feedforward_weight = 40.0f;
-    g_leg_left.target_leg_virtual_force = 0;//PID_dt(&g_pid_left_leg_length, chassis_height - g_leg_left.length, TASK_TIME);//+ feedforward_weight;//0+g_remote.controller.right_stick.y/660.0f*10.0f;//PID(&g_pid_left_leg_length, chassis_height - g_leg_left.length);// + feedforward_weight;
-    g_leg_right.target_leg_virtual_force = 0;//PID_dt(&g_pid_right_leg_length, chassis_height - g_leg_right.length, TASK_TIME);//+ feedforward_weight;//PID(&g_pid_left_leg_length, chassis_height - g_leg_right.length);// + feedforward_weight;
-    g_leg_left.target_leg_virtual_torq =  g_u_left.T_B;//PID_dt(&g_pid_left_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_left.phi0, TASK_TIME); //g_u_left.T_B;// + PID(&g_pid_left_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_left.phi0);
-    g_leg_right.target_leg_virtual_torq = -g_u_right.T_B;//PID_dt(&g_pid_right_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_right.phi0, TASK_TIME);//g_u_right.T_B;// + PID(&g_pid_right_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_right.phi0);
+    float feedforward_weight = 40.0f;
+    g_leg_left.target_leg_virtual_force = PID_dt(&g_pid_left_leg_length, chassis_height - g_leg_left.length, TASK_TIME) + feedforward_weight;//0+g_remote.controller.right_stick.y/660.0f*10.0f;//PID(&g_pid_left_leg_length, chassis_height - g_leg_left.length);// + feedforward_weight;
+    g_leg_right.target_leg_virtual_force = PID_dt(&g_pid_right_leg_length, chassis_height - g_leg_right.length, TASK_TIME) + feedforward_weight;//PID(&g_pid_left_leg_length, chassis_height - g_leg_right.length);// + feedforward_weight;
+    g_leg_left.target_leg_virtual_torq =  -g_u_left.T_B;//PID_dt(&g_pid_left_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_left.phi0, TASK_TIME); //g_u_left.T_B;// + PID(&g_pid_left_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_left.phi0);
+    g_leg_right.target_leg_virtual_torq = g_u_right.T_B;//PID_dt(&g_pid_right_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_right.phi0, TASK_TIME);//g_u_right.T_B;// + PID(&g_pid_right_leg_angle, PI/2 + g_remote.controller.right_stick.y/660.0f - g_leg_right.phi0);
 }
 void _lqr_balancce_controller()
 {
@@ -197,12 +216,24 @@ void _lqr_balancce_controller()
     /* LQR */
     LQR_Output(&g_u_left, &g_lqr_left_state);
     LQR_Output(&g_u_right, &g_lqr_right_state);
+    static float left_leg_angle, right_leg_angle = 0;
+
+    /* Anti Split */
+    left_leg_angle = g_leg_left.phi0;
+    right_leg_angle = PI - g_leg_right.phi0;
+    PID_dt(&g_pid_anti_split, left_leg_angle - right_leg_angle, TASK_TIME);
+
+    g_u_left.T_B += g_pid_anti_split.output;
+    g_u_right.T_B -= g_pid_anti_split.output;
 }
 void _vmc_torq_calc()
 {
     Leg_VMC(&g_leg_left);
     Leg_VMC(&g_leg_right);
-    //_hip_motor_torq_ctrl(g_leg_left.torq1, g_leg_right.torq4, g_leg_left.torq1, g_leg_right.torq4);
+
+    PID_dt(&g_pid_yaw_angle, g_chassis.current_yaw - g_chassis.target_yaw, TASK_TIME);
+    g_u_left.T_A -= g_pid_yaw_angle.output;
+    g_u_right.T_A += g_pid_yaw_angle.output;
 }
 
 void Chassis_Disable()
@@ -217,19 +248,21 @@ void Chassis_Ctrl_Loop()
     test.target_leg_virtual_torq = g_remote.controller.right_stick.x/660.0f * 10.0f;
     test.target_leg_virtual_force = g_remote.controller.left_stick.x/660.0f * 10.0f;
     Leg_VMC(&test);
-    _wheel_leg_estimation(-g_imu.rad.roll, -g_imu.bmi088_raw.gyro[0]);
-    g_robot_state.chassis_height = 0.1f;
+    _wheel_leg_estimation(g_imu.rad.yaw, -g_imu.rad.roll, -g_imu.bmi088_raw.gyro[0]);
+    g_robot_state.chassis_height = 0.18f;
     _leg_length_controller(g_robot_state.chassis_height);
     _lqr_balancce_controller();
     _vmc_torq_calc();
     if (g_robot_state.enabled) {
         _hip_motor_torq_ctrl(-g_leg_left.torq4, -g_leg_left.torq1, -g_leg_right.torq4, -g_leg_right.torq1);
+        // _foot_motor_torq_ctrl(-g_u_left.T_A,  g_u_right.T_A); // verified direction
         _foot_motor_torq_ctrl(-g_u_left.T_A,  g_u_right.T_A);
     }
     else {
         Chassis_Disable();
         g_left_foot_initialized = 0;
         g_right_foot_initialized = 0;
+        g_chassis.target_yaw = g_chassis.current_yaw;
         PID_Reset(&g_pid_left_leg_length);
         PID_Reset(&g_pid_right_leg_length);
         PID_Reset(&g_pid_left_leg_angle);

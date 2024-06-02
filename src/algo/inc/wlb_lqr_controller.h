@@ -8,6 +8,7 @@ typedef struct lqr_ss_s {
     float theta_dot;
     float phi;
     float phi_dot;
+    float leg_len;
 } lqr_ss_t;
 
 typedef struct lqr_u_s {
