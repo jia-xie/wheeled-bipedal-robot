@@ -2,6 +2,9 @@
 #define HEADER_NAME_H
 
 typedef struct lqr_ss_s {
+    float target_x;
+    float target_x_dot;
+
     float x;
     float x_dot;
     float theta;

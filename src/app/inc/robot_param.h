@@ -25,6 +25,7 @@
 #define THIGH_LENGTH 0.15f
 #define CALF_LENGTH 0.27f
 #define FOOT_WHEEL_RADIUS (0.06f) // meter
+#define HALF_WHEEL_DISTANCE (0.20705f)
 
 /* Limit */
 #define THIGH_ANG_RANGE 45.0f //degree

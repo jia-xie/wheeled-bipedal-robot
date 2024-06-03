@@ -6,9 +6,11 @@
 typedef struct chassis_s
 {
     float target_yaw;
+    float target_yaw_speed;
     float last_yaw_raw;
     float current_yaw;
     int16_t total_turns;
+    float target_vel;
 } Chassis_t;
 
 // Function prototypes
