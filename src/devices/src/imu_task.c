@@ -6,8 +6,8 @@
  */
 
 #include "imu_task.h"
-
-
+#include "Fusion.h"
+#include "user_math.h"
 
 static void imu_cmd_spi_dma(void);
 
@@ -38,6 +38,7 @@ volatile uint8_t imu_start_dma_flag = 0;
 
 IMU_t g_imu;
 PID_t g_imu_temp_pid;
+FusionAhrs g_fusion_ahrs;
 
 void IMU_Task(void const *pvParameters)
 {
@@ -122,6 +123,21 @@ void IMU_Task_Process(IMU_t *imu)
                         imu->bmi088_raw.gyro[0], imu->bmi088_raw.gyro[1], imu->bmi088_raw.gyro[2],
                         imu->bmi088_raw.accel[0], imu->bmi088_raw.accel[1], imu->bmi088_raw.accel[2]);
     #endif
+    /* Fusion Estimation */
+    // Initialize Fusion Interface with Gyro and Accel values
+    const FusionVector fusion_vector_gyro = {{imu->bmi088_raw.gyro[0] * RAD_TO_DEG, imu->bmi088_raw.gyro[1] * RAD_TO_DEG, imu->bmi088_raw.gyro[2] * RAD_TO_DEG}};
+    const FusionVector fusion_vector_accel = {{imu->bmi088_raw.accel[0], imu->bmi088_raw.accel[1], imu->bmi088_raw.accel[2]}}; 
+    FusionAhrsUpdateNoMagnetometer(&g_fusion_ahrs, fusion_vector_gyro, fusion_vector_accel, IMU_TASK_PERIOD_SEC);
+	
+	const FusionEuler fusion_imu = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&g_fusion_ahrs));
+	g_imu.deg_fusion.pitch = fusion_imu.angle.pitch;
+    g_imu.deg_fusion.roll = fusion_imu.angle.roll;
+    g_imu.deg_fusion.yaw = fusion_imu.angle.yaw;
+
+    g_imu.rad_fusion.pitch = fusion_imu.angle.pitch * DEG_TO_RAD;
+    g_imu.rad_fusion.roll = fusion_imu.angle.roll * DEG_TO_RAD;
+    g_imu.rad_fusion.yaw = fusion_imu.angle.yaw * DEG_TO_RAD;
+
     /* Quternion to Euler */
     imu->rad.yaw = atan2f(2.0f * (imu->quat[0] * imu->quat[3] + imu->quat[1] * imu->quat[2]), 2.0f * (imu->quat[0] * imu->quat[0] + imu->quat[1] * imu->quat[1]) - 1.0f);
     imu->rad.pitch = asinf(-2.0f * (imu->quat[1] * imu->quat[3] - imu->quat[0] * imu->quat[2]));

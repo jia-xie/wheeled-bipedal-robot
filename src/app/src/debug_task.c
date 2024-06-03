@@ -69,7 +69,10 @@ void Debug_Task_Loop(void)
     DEBUG_PRINTF(&huart6, ">right_x:%f\n", g_lqr_right_state.target_x);
     DEBUG_PRINTF(&huart6, ">right_x_dot:%f\n", g_lqr_right_state.target_x_dot);
 
-
+    DEBUG_PRINTF(&huart6, ">pitch_fusion:%f\n", g_imu.rad_fusion.pitch);
+    DEBUG_PRINTF(&huart6, ">yaw_fusion:%f\n", g_imu.rad_fusion.yaw);
+    DEBUG_PRINTF(&huart6, ">pitch_m:%f\n", g_imu.deg.pitch);
+    DEBUG_PRINTF(&huart6, ">yaw_m:%f\n", g_imu.deg.yaw);
 
     // DEBUG_PRINTF(&huart6, ">pitch:%f\n>pid_vel:%f\n>pid_ang:%f\n", g_lqr_right_state.phi, g_balance_vel_pid.output, g_balance_angle_pid.output);
 #endif

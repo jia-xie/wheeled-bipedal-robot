@@ -13,6 +13,7 @@
 #include "referee_system.h"
 #include "buzzer.h"
 #include "ui.h"
+#include "Fusion.h"
 
 extern DJI_Motor_Handle_t *g_yaw;
 #define SPIN_TOP_OMEGA (1.0f)
@@ -26,7 +27,7 @@ Robot_State_t g_robot_state = {0, 0};
 Key_Prev_t g_key_prev = {0};
 extern Launch_Target_t g_launch_target;
 extern Remote_t g_remote;
-
+extern FusionAhrs g_fusion_ahrs;
 uint8_t g_start_safely = 0;
 
 void Robot_Cmd_Loop(void);
@@ -44,6 +45,7 @@ void Robot_Init()
 
     // Initialize all hardware
     Chassis_Task_Init();
+    FusionAhrsInitialise(&g_fusion_ahrs);
     // Gimbal_Task_Init();
     // Launch_Task_Init();
     Remote_Init(&huart3);

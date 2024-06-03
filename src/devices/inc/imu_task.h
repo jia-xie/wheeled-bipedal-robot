@@ -18,6 +18,9 @@
 #include "MahonyAHRS.h"
 #include "math.h"
 
+#define IMU_TASK_PERIOD_SEC (IMU_TASK_PERIOD_MS / 1000.0f)
+#define IMU_TASK_PERIOD_MS (1)
+
 #define SPI_DMA_GYRO_LENGHT 8
 #define SPI_DMA_ACCEL_LENGHT 9
 #define SPI_DMA_ACCEL_TEMP_LENGHT 4
@@ -85,7 +88,11 @@ typedef struct IMU
 
   Euler_Orientation_t rad;
 
+  Euler_Orientation_t rad_fusion;
+
   Euler_Orientation_t deg;
+
+  Euler_Orientation_t deg_fusion;
 
 } IMU_t;
 
