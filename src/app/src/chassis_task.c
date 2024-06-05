@@ -8,7 +8,27 @@
 #include "five_bar_leg.h"
 #include "wlb_lqr_controller.h"
 #include "robot_param.h"
+#include "kalman_filter.h"
 
+float vel_kalman;
+/* Kalman Filter */
+float vaEstimateKF_F[4] = {1.0f, 0.003f,
+                           0.0f, 1.0f}; // 状态转移矩阵，控制周期为0.001s
+
+float vaEstimateKF_P[4] = {1.0f, 0.0f,
+                           0.0f, 1.0f}; // 后验估计协方差初始值
+
+float vaEstimateKF_Q[4] = {0.1f, 0.0f,
+                           0.0f, 0.1f}; // Q矩阵初始值
+
+float vaEstimateKF_R[4] = {100.0f, 0.0f,
+                           0.0f, 100.0f};
+
+float vaEstimateKF_K[4];
+
+const float vaEstimateKF_H[4] = {1.0f, 0.0f,
+                                 0.0f, 1.0f}; // 设置矩阵H为常量
+#define KALMAN_FILTER
 #define TASK_TIME (0.002f)
 /* Statistics */
 #define UP_ANGLE_ODD (-48.0f)
@@ -27,7 +47,8 @@
 
 #define FOOT_MOTOR_MAX_TORQ (2.3f)
 #define FOOT_MF9025_MAX_TORQ_INT ((FOOT_MOTOR_MAX_TORQ / MF9025_TORQ_CONSTANT) / 16.5f * 2048.0f)
-
+float vel_acc[2];
+KalmanFilter_t vaEstimateKF;
 extern Robot_State_t g_robot_state;
 extern Remote_t g_remote;
 extern IMU_t g_imu;
@@ -55,6 +76,33 @@ void _wheel_leg_estimation(float robot_yaw, float robot_pitch, float robot_pitch
 void _leg_length_controller(float chassis_height);
 void _lqr_balancce_controller();
 void _vmc_torq_calc();
+
+void xvEstimateKF_Init(KalmanFilter_t *EstimateKF)
+{
+    Kalman_Filter_Init(EstimateKF, 2, 0, 2); // 状态向量2维 没有控制量 测量向量2维
+
+    memcpy(EstimateKF->F_data, vaEstimateKF_F, sizeof(vaEstimateKF_F));
+    memcpy(EstimateKF->P_data, vaEstimateKF_P, sizeof(vaEstimateKF_P));
+    memcpy(EstimateKF->Q_data, vaEstimateKF_Q, sizeof(vaEstimateKF_Q));
+    memcpy(EstimateKF->R_data, vaEstimateKF_R, sizeof(vaEstimateKF_R));
+    memcpy(EstimateKF->H_data, vaEstimateKF_H, sizeof(vaEstimateKF_H));
+}
+
+void xvEstimateKF_Update(KalmanFilter_t *EstimateKF, float acc, float vel)
+{
+    // 卡尔曼滤波器测量值更新
+    EstimateKF->MeasuredVector[0] = vel; // 测量速度
+    EstimateKF->MeasuredVector[1] = acc; // 测量加速度
+
+    // 卡尔曼滤波器更新函数
+    Kalman_Filter_Update(EstimateKF);
+
+    // 提取估计值
+    for (uint8_t i = 0; i < 2; i++)
+    {
+        vel_acc[i] = EstimateKF->FilteredValue[i];
+    }
+}
 
 void Chassis_Task_Init()
 {
@@ -94,14 +142,16 @@ void Chassis_Task_Init()
     PID_Init(&g_balance_vel_pid, 10.0f, 0.0f, 0.001f, 10.0f, 0.0f, 0.0f);
 
     PID_Init(&g_pid_yaw_angle, 5.0f, 0.0f, 1.1f, 10.0f, 0.0f, 0.0f);
-    PID_Init(&g_pid_anti_split, 25.0f, 0.0f, 4.0f, 20.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_anti_split, 40.0f, 0.0f, 4.0f, 20.0f, 0.0f, 0.0f);
 
     g_robot_state.chassis_height = 0.10f;
+
+    xvEstimateKF_Init(&vaEstimateKF);
 }
 
-uint8_t _is_commanded()
+uint8_t _is_turning()
 {
-    return (g_remote.controller.right_stick.x != 0) || (g_remote.controller.left_stick.y != 0);
+    return (g_remote.controller.right_stick.x != 0) || (g_remote.keyboard.A) || (g_remote.keyboard.D) || (g_remote.mouse.x != 0);
 }
 
 void _hip_motor_torq_ctrl(float torq_lf, float torq_lb, float torq_rb, float torq_rf)
@@ -172,31 +222,69 @@ void _wheel_leg_estimation(float robot_yaw, float robot_pitch, float robot_pitch
     g_chassis.current_yaw = robot_yaw + 2 * PI * g_chassis.total_turns;
 
     Leg_ForwardKinematics(&g_leg_left, g_leg_left.phi1, g_leg_left.phi4, g_leg_left.phi1_dot, g_leg_left.phi4_dot);
+#ifndef KALMAN_FILTER
     g_lqr_left_state.x = -(g_left_foot_motor->stats->total_angle + g_left_foot_motor->angle_offset) * FOOT_WHEEL_RADIUS;
     g_lqr_left_state.x_dot = -g_left_foot_motor->stats->velocity * DEG_TO_RAD * FOOT_WHEEL_RADIUS;
+#endif
     g_lqr_left_state.theta = -(g_leg_left.phi0 - PI / 2 + robot_pitch);
     g_lqr_left_state.theta_dot = -(g_leg_left.phi0_dot + robot_pitch_dot);
     g_lqr_left_state.phi = robot_pitch;
     g_lqr_left_state.phi_dot = robot_pitch_dot;
     g_lqr_left_state.leg_len = g_leg_left.length;
     Leg_ForwardKinematics(&g_leg_right, g_leg_right.phi1, g_leg_right.phi4, g_leg_right.phi1_dot, g_leg_right.phi4_dot);
+#ifndef KALMAN_FILTER
     g_lqr_right_state.x = (g_right_foot_motor->stats->total_angle + g_right_foot_motor->angle_offset) * FOOT_WHEEL_RADIUS;
     g_lqr_right_state.x_dot = (g_right_foot_motor->stats->velocity * DEG_TO_RAD * FOOT_WHEEL_RADIUS);
+#endif
     g_lqr_right_state.theta = -(-g_leg_right.phi0 + PI / 2 + robot_pitch);
     g_lqr_right_state.theta_dot = -(-g_leg_right.phi0_dot + robot_pitch_dot);
     g_lqr_right_state.phi = (robot_pitch);
     g_lqr_right_state.phi_dot = (robot_pitch_dot);
     g_lqr_right_state.leg_len = g_leg_right.length;
 
+    static float wr,wl=0.0f;
+	static float vrb,vlb=0.0f;
+	static float aver_v=0.0f;
+		
+#ifdef KALMAN_FILTER
+if (g_imu.imu_ready_flag) {
+    wl= (-g_left_foot_motor->stats->velocity * DEG_TO_RAD)+robot_pitch_dot+g_leg_left.phi3_dot;//右边驱动轮转子相对大地角速度，这里定义的是顺时针为正
+	vlb=wl*FOOT_WHEEL_RADIUS+g_leg_left.length*g_lqr_left_state.theta_dot*arm_cos_f32(g_lqr_left_state.theta)+g_leg_left.length_dot*arm_sin_f32(g_lqr_left_state.theta_dot);//机体b系的速度
+		
+	wr= (g_right_foot_motor->stats->velocity * DEG_TO_RAD)+robot_pitch_dot-g_leg_right.phi2_dot;//左边驱动轮转子相对大地角速度，这里定义的是顺时针为正
+	vrb=wr*FOOT_WHEEL_RADIUS+g_leg_right.length*g_lqr_right_state.theta_dot*arm_cos_f32(g_lqr_right_state.theta)+g_leg_right.length_dot*arm_sin_f32(g_lqr_right_state.theta_dot);//机体b系的速度
+		
+	aver_v=(vrb+vlb)/2.0f;//取平均
+    xvEstimateKF_Update(&vaEstimateKF,-g_imu.accel_body[1],aver_v);
+		
+		//原地自转的过程中v_filter和x_filter应该都是为0
+	vel_kalman=vel_acc[0];//得到卡尔曼滤波后的速度
+		// chassis_move.x_filter=chassis_move.x_filter+chassis_move.v_filter*((float)OBSERVE_TIME/1000.0f);
+
+    g_lqr_left_state.x_dot = vel_kalman;
+    g_lqr_right_state.x_dot = vel_kalman;
+    if (vel_kalman > 0.01f || vel_kalman < -0.01f) {
+        g_lqr_left_state.x += g_lqr_left_state.x_dot * TASK_TIME;
+        g_lqr_right_state.x += g_lqr_right_state.x_dot * TASK_TIME;
+    }
+}
+#endif
+
     // Kinematics
-    // if (_is_commanded()){
-    float robot_x = g_lqr_left_state.x/2.0f + g_lqr_right_state.x/2.0f;
-    g_lqr_left_state.x = robot_x;
-    g_lqr_right_state.x = robot_x;
-    float robot_x_dot = g_lqr_left_state.x_dot/2.0f + g_lqr_right_state.x_dot/2.0f;
-    g_lqr_left_state.x_dot = robot_x_dot;
-    g_lqr_right_state.x_dot = robot_x_dot;
-    // }
+    if (_is_turning() || !g_robot_state.enabled)
+    {
+        g_chassis.wheel_x_turning_offset = (g_lqr_left_state.x - g_lqr_right_state.x) / 2;
+        // float robot_x = g_lqr_left_state.x/2.0f + g_lqr_right_state.x/2.0f;
+        // g_lqr_left_state.x = robot_x;
+        // g_lqr_right_state.x = robot_x;
+        // float robot_x_dot = g_lqr_left_state.x_dot/2.0f + g_lqr_right_state.x_dot/2.0f;
+        // g_lqr_left_state.x_dot = robot_x_dot;
+        // g_lqr_right_state.x_dot = robot_x_dot;
+    }
+    g_lqr_left_state.x -= g_chassis.wheel_x_turning_offset;
+    g_lqr_right_state.x += g_chassis.wheel_x_turning_offset;
+
+
 }
 
 void _get_leg_statistics()
@@ -217,9 +305,9 @@ void _target_state_update(Remote_t *remote)
     g_chassis.target_yaw_speed = -remote->controller.right_stick.x / 660.0f * 6.0f;
     g_chassis.target_yaw += g_chassis.target_yaw_speed * TASK_TIME;
     g_chassis.target_vel = 0.995f * g_chassis.target_vel + 0.005f * (-remote->controller.left_stick.y / 660.0f * 1.6f);
-    g_lqr_left_state.target_x_dot = g_chassis.target_vel;// - g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
+    g_lqr_left_state.target_x_dot = g_chassis.target_vel; // - g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
     g_lqr_left_state.target_x += g_lqr_left_state.target_x_dot * TASK_TIME;
-    g_lqr_right_state.target_x_dot = g_chassis.target_vel;// + g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
+    g_lqr_right_state.target_x_dot = g_chassis.target_vel; // + g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
     g_lqr_right_state.target_x += g_lqr_right_state.target_x_dot * TASK_TIME;
     g_robot_state.chassis_height += remote->controller.right_stick.y / 660.0f * 0.2f * TASK_TIME;
     __MAX_LIMIT(g_robot_state.chassis_height, 0.1f, 0.35f);
@@ -267,7 +355,7 @@ void Chassis_Disable()
 
 void Chassis_Ctrl_Loop()
 {
-    _wheel_leg_estimation(g_imu.rad.yaw, -g_imu.rad.roll, -g_imu.bmi088_raw.gyro[0]);
+    _wheel_leg_estimation(g_imu.rad.yaw, -g_imu.rad_fusion.roll, -g_imu.bmi088_raw.gyro[0]);
     _target_state_update(&g_remote);
     _leg_length_controller(g_robot_state.chassis_height);
     _lqr_balancce_controller();
@@ -283,6 +371,7 @@ void Chassis_Ctrl_Loop()
         g_left_foot_initialized = 0;
         g_right_foot_initialized = 0;
         g_chassis.target_yaw = g_chassis.current_yaw;
+        g_robot_state.chassis_height = 0.1f;
         PID_Reset(&g_pid_left_leg_length);
         PID_Reset(&g_pid_right_leg_length);
         PID_Reset(&g_pid_left_leg_angle);

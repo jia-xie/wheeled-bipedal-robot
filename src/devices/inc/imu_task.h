@@ -94,6 +94,13 @@ typedef struct IMU
 
   Euler_Orientation_t deg_fusion;
 
+  float accel_earth[3];
+
+  float accel_body[3];
+
+  float AccelLPF;
+
+  uint8_t imu_ready_flag;
 } IMU_t;
 
 extern IMU_t g_imu;

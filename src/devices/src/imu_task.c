@@ -10,7 +10,8 @@
 #include "user_math.h"
 
 static void imu_cmd_spi_dma(void);
-
+void BodyFrameToEarthFrame(const float *vecBF, float *vecEF, float *q);
+void EarthFrameToBodyFrame(const float *vecEF, float *vecBF, float *q);
 void IMU_Task_Init(IMU_t *imu);
 void IMU_Task_Process(IMU_t *imu);
 void IMU_Task_Temp();
@@ -19,7 +20,8 @@ extern SPI_HandleTypeDef hspi1;
 extern TIM_HandleTypeDef htim10;
 
 static TaskHandle_t imu_task_local_handler;
-
+uint16_t imu_up_time_ms = 0;
+#define IMU_READY_TIME_MS (3000)
 uint8_t gyro_dma_rx_buf[SPI_DMA_GYRO_LENGHT];
 uint8_t gyro_dma_tx_buf[SPI_DMA_GYRO_LENGHT] = {0x82, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
@@ -39,7 +41,7 @@ volatile uint8_t imu_start_dma_flag = 0;
 IMU_t g_imu;
 PID_t g_imu_temp_pid;
 FusionAhrs g_fusion_ahrs;
-
+float gravity[3] = {0, 0, 9.81f};
 void IMU_Task(void const *pvParameters)
 {
     IMU_Task_Init(&g_imu);
@@ -49,8 +51,16 @@ void IMU_Task(void const *pvParameters)
     while (1)
     {
         /* Wait for SPI DMA @ref HAL_GPIO_EXTI_Callback() */
-        while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS);
-
+        while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS)
+            ;
+        if (imu_up_time_ms == IMU_READY_TIME_MS)
+        {
+            g_imu.imu_ready_flag = 1;
+        }
+        else
+        {
+            imu_up_time_ms++;
+        }
         IMU_Task_Process(&g_imu);
         vTaskDelayUntil(&xLastWakeTime, TimeIncrement);
     }
@@ -71,10 +81,10 @@ void IMU_Task_Init(IMU_t *imu)
         osDelay(100);
     }
     BMI088_init();
-//    while (ist8310_init())
-//    {
-//        osDelay(100);
-//    }
+    //    while (ist8310_init())
+    //    {
+    //        osDelay(100);
+    //    }
 
     BMI088_read(imu->bmi088_raw.gyro, imu->bmi088_raw.accel, &imu->bmi088_raw.temp);
 
@@ -84,8 +94,9 @@ void IMU_Task_Init(IMU_t *imu)
     imu->quat[2] = 0.0f;
     imu->quat[3] = 0.0f;
 
-//    HAL_SPI_Receive_DMA(&hspi1, gyro_dma_rx_buf, SPI_DMA_GYRO_LENGHT);
-//    HAL_SPI_Transmit_DMA(&hspi1, gyro_dma_tx_buf, SPI_DMA_GYRO_LENGHT);
+    imu->AccelLPF = 0.0089f;
+    //    HAL_SPI_Receive_DMA(&hspi1, gyro_dma_rx_buf, SPI_DMA_GYRO_LENGHT);
+    //    HAL_SPI_Transmit_DMA(&hspi1, gyro_dma_tx_buf, SPI_DMA_GYRO_LENGHT);
     SPI1_DMA_init((uint32_t)gyro_dma_tx_buf, (uint32_t)gyro_dma_rx_buf, SPI_DMA_GYRO_LENGHT);
     imu_start_dma_flag = 1;
 }
@@ -111,26 +122,26 @@ void IMU_Task_Process(IMU_t *imu)
         BMI088_temperature_read_over(accel_temp_dma_rx_buf + BMI088_ACCEL_RX_BUF_DATA_OFFSET, &g_imu.bmi088_raw.temp);
     }
 
-    #ifdef WITH_MAGNETOMETER
+#ifdef WITH_MAGNETOMETER
     // fusion using magnetometer
-     MahonyAHRSupdate(imu->quat,
-                      imu->bmi088_raw.gyro[0], imu->bmi088_raw.gyro[1], imu->bmi088_raw.gyro[2],
-                      imu->bmi088_raw.accel[0], imu->bmi088_raw.accel[1], imu->bmi088_raw.accel[2],
-                      imu->ist8310_raw.mag[0], imu->ist8310_raw.mag[1], imu->ist8310_raw.mag[2]);
-    #else
+    MahonyAHRSupdate(imu->quat,
+                     imu->bmi088_raw.gyro[0], imu->bmi088_raw.gyro[1], imu->bmi088_raw.gyro[2],
+                     imu->bmi088_raw.accel[0], imu->bmi088_raw.accel[1], imu->bmi088_raw.accel[2],
+                     imu->ist8310_raw.mag[0], imu->ist8310_raw.mag[1], imu->ist8310_raw.mag[2]);
+#else
     // fusion without magnetometer
     MahonyAHRSupdateIMU(imu->quat,
                         imu->bmi088_raw.gyro[0], imu->bmi088_raw.gyro[1], imu->bmi088_raw.gyro[2],
                         imu->bmi088_raw.accel[0], imu->bmi088_raw.accel[1], imu->bmi088_raw.accel[2]);
-    #endif
+#endif
     /* Fusion Estimation */
     // Initialize Fusion Interface with Gyro and Accel values
     const FusionVector fusion_vector_gyro = {{imu->bmi088_raw.gyro[0] * RAD_TO_DEG, imu->bmi088_raw.gyro[1] * RAD_TO_DEG, imu->bmi088_raw.gyro[2] * RAD_TO_DEG}};
-    const FusionVector fusion_vector_accel = {{imu->bmi088_raw.accel[0], imu->bmi088_raw.accel[1], imu->bmi088_raw.accel[2]}}; 
+    const FusionVector fusion_vector_accel = {{imu->bmi088_raw.accel[0], imu->bmi088_raw.accel[1], imu->bmi088_raw.accel[2]}};
     FusionAhrsUpdateNoMagnetometer(&g_fusion_ahrs, fusion_vector_gyro, fusion_vector_accel, IMU_TASK_PERIOD_SEC);
-	
-	const FusionEuler fusion_imu = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&g_fusion_ahrs));
-	g_imu.deg_fusion.pitch = fusion_imu.angle.pitch;
+
+    const FusionEuler fusion_imu = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&g_fusion_ahrs));
+    g_imu.deg_fusion.pitch = fusion_imu.angle.pitch;
     g_imu.deg_fusion.roll = fusion_imu.angle.roll;
     g_imu.deg_fusion.yaw = fusion_imu.angle.yaw;
 
@@ -147,17 +158,43 @@ void IMU_Task_Process(IMU_t *imu)
     imu->deg.pitch = imu->rad.pitch * RAD_TO_DEG;
     imu->deg.roll = imu->rad.roll * RAD_TO_DEG;
 
+
+    const float ins_dt = 0.001f;
+    float gravity_b[3];
+    EarthFrameToBodyFrame(gravity, gravity_b, imu->quat);
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        imu->accel_body[i] = (imu->bmi088_raw.accel[i] - gravity_b[i]) * ins_dt / (imu->AccelLPF + ins_dt) + imu->accel_body[i] * imu->AccelLPF / (imu->AccelLPF + ins_dt);
+    }
+    BodyFrameToEarthFrame(imu->accel_body, imu->accel_earth, imu->quat);
+    		// 锟斤拷锟斤拷锟斤拷锟斤拷
+		if (fabsf(imu->accel_earth[0]) < 0.02f)
+		{
+			imu->accel_earth[0] = 0.0f; // x锟斤拷
+		}
+		if (fabsf(imu->accel_earth[1]) < 0.04f)
+		{
+			imu->accel_earth[1] = 0.0f; // y锟斤拷
+		}
+		if (fabsf(imu->accel_earth[2]) < 0.04f)
+		{
+			imu->accel_earth[2] = 0.0f; // z锟斤拷
+		}
     IMU_Task_Temp();
 }
 
-void IMU_Task_Temp() {
+void IMU_Task_Temp()
+{
     static uint8_t start_complete = 0;
-    if (g_imu.bmi088_raw.temp > 40.0f) {start_complete = 1;}
+    if (g_imu.bmi088_raw.temp > 40.0f)
+    {
+        start_complete = 1;
+    }
     switch (start_complete)
     {
     case 1:
     {
-        uint16_t temp_pwm = (uint16_t) PID(&g_imu_temp_pid, 40 - g_imu.bmi088_raw.temp);
+        uint16_t temp_pwm = (uint16_t)PID(&g_imu_temp_pid, 40 - g_imu.bmi088_raw.temp);
         __HAL_TIM_SetCompare(&htim10, TIM_CHANNEL_1, temp_pwm);
         break;
     }
@@ -198,7 +235,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
             mag_update_flag &= ~(1 << IMU_DR_SHFITS);
             mag_update_flag |= (1 << IMU_SPI_SHFITS);
 
-            //ist8310_read_mag(g_imu.ist8310_raw.mag);
+            // ist8310_read_mag(g_imu.ist8310_raw.mag);
         }
     }
     else if (GPIO_Pin == GPIO_PIN_0)
@@ -296,4 +333,46 @@ void DMA2_Stream2_IRQHandler(void)
             __HAL_GPIO_EXTI_GENERATE_SWIT(GPIO_PIN_0);
         }
     }
+}
+
+/**
+ * @brief          Transform 3dvector from BodyFrame to EarthFrame
+ * @param[1]       vector in BodyFrame
+ * @param[2]       vector in EarthFrame
+ * @param[3]       quaternion
+ */
+void BodyFrameToEarthFrame(const float *vecBF, float *vecEF, float *q)
+{
+    vecEF[0] = 2.0f * ((0.5f - q[2] * q[2] - q[3] * q[3]) * vecBF[0] +
+                       (q[1] * q[2] - q[0] * q[3]) * vecBF[1] +
+                       (q[1] * q[3] + q[0] * q[2]) * vecBF[2]);
+
+    vecEF[1] = 2.0f * ((q[1] * q[2] + q[0] * q[3]) * vecBF[0] +
+                       (0.5f - q[1] * q[1] - q[3] * q[3]) * vecBF[1] +
+                       (q[2] * q[3] - q[0] * q[1]) * vecBF[2]);
+
+    vecEF[2] = 2.0f * ((q[1] * q[3] - q[0] * q[2]) * vecBF[0] +
+                       (q[2] * q[3] + q[0] * q[1]) * vecBF[1] +
+                       (0.5f - q[1] * q[1] - q[2] * q[2]) * vecBF[2]);
+}
+
+/**
+ * @brief          Transform 3dvector from EarthFrame to BodyFrame
+ * @param[1]       vector in EarthFrame
+ * @param[2]       vector in BodyFrame
+ * @param[3]       quaternion
+ */
+void EarthFrameToBodyFrame(const float *vecEF, float *vecBF, float *q)
+{
+    vecBF[0] = 2.0f * ((0.5f - q[2] * q[2] - q[3] * q[3]) * vecEF[0] +
+                       (q[1] * q[2] + q[0] * q[3]) * vecEF[1] +
+                       (q[1] * q[3] - q[0] * q[2]) * vecEF[2]);
+
+    vecBF[1] = 2.0f * ((q[1] * q[2] - q[0] * q[3]) * vecEF[0] +
+                       (0.5f - q[1] * q[1] - q[3] * q[3]) * vecEF[1] +
+                       (q[2] * q[3] + q[0] * q[1]) * vecEF[2]);
+
+    vecBF[2] = 2.0f * ((q[1] * q[3] + q[0] * q[2]) * vecEF[0] +
+                       (q[2] * q[3] - q[0] * q[1]) * vecEF[1] +
+                       (0.5f - q[1] * q[1] - q[2] * q[2]) * vecEF[2]);
 }

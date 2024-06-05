@@ -34,6 +34,7 @@ extern lqr_u_t g_u_left, g_u_right;
 #define DEBUG_ENABLED
 #include "chassis_task.h"
 extern Chassis_t g_chassis;
+extern float vel_kalman;
 void Debug_Task_Loop(void)
 {
 #ifdef DEBUG_ENABLED
@@ -73,6 +74,10 @@ void Debug_Task_Loop(void)
     DEBUG_PRINTF(&huart6, ">yaw_fusion:%f\n", g_imu.rad_fusion.yaw);
     DEBUG_PRINTF(&huart6, ">pitch_m:%f\n", g_imu.deg.pitch);
     DEBUG_PRINTF(&huart6, ">yaw_m:%f\n", g_imu.deg.yaw);
+    DEBUG_PRINTF(&huart6, ">kalman_test:%f\n", vel_kalman);
+    DEBUG_PRINTF(&huart6, ">y_ddot:%f\n", g_imu.accel_earth[1]);
+    DEBUG_PRINTF(&huart6, ">x_ddot:%f\n", g_imu.accel_earth[0]);
+    DEBUG_PRINTF(&huart6, ">z_ddot:%f\n", g_imu.accel_earth[2]);
 
     // DEBUG_PRINTF(&huart6, ">pitch:%f\n>pid_vel:%f\n>pid_ang:%f\n", g_lqr_right_state.phi, g_balance_vel_pid.output, g_balance_angle_pid.output);
 #endif

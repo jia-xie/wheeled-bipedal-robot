@@ -11,6 +11,7 @@ typedef struct chassis_s
     float current_yaw;
     int16_t total_turns;
     float target_vel;
+    float wheel_x_turning_offset;
 } Chassis_t;
 
 // Function prototypes
