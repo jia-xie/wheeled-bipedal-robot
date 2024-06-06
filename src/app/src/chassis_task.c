@@ -45,7 +45,7 @@ const float vaEstimateKF_H[4] = {1.0f, 0.0f,
 #define DOWN_3 (26586.0f)
 #define DOWN_4 (47774.0f)
 
-#define FOOT_MOTOR_MAX_TORQ (2.3f)
+#define FOOT_MOTOR_MAX_TORQ (2.4f)
 #define FOOT_MF9025_MAX_TORQ_INT ((FOOT_MOTOR_MAX_TORQ / MF9025_TORQ_CONSTANT) / 16.5f * 2048.0f)
 float vel_acc[2];
 KalmanFilter_t vaEstimateKF;
@@ -302,9 +302,9 @@ void _get_leg_statistics()
 
 void _target_state_update(Remote_t *remote)
 {
-    g_chassis.target_yaw_speed = -remote->controller.right_stick.x / 660.0f * 6.0f;
+    g_chassis.target_yaw_speed = -remote->controller.right_stick.x / 660.0f * 12.0f;
     g_chassis.target_yaw += g_chassis.target_yaw_speed * TASK_TIME;
-    g_chassis.target_vel = 0.995f * g_chassis.target_vel + 0.005f * (-remote->controller.left_stick.y / 660.0f * 1.6f);
+    g_chassis.target_vel = 0.995f * g_chassis.target_vel + 0.005f * (-remote->controller.left_stick.y / 660.0f * 2.0f);
     g_lqr_left_state.target_x_dot = g_chassis.target_vel; // - g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
     g_lqr_left_state.target_x += g_lqr_left_state.target_x_dot * TASK_TIME;
     g_lqr_right_state.target_x_dot = g_chassis.target_vel; // + g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;

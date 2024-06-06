@@ -222,7 +222,7 @@ void Robot_Cmd_Loop()
     else
     {
         // Ensure controller is down before enabling robot, ensure imu is initialized before enabling robot
-        if ((g_remote.controller.right_switch == DOWN) && (g_imu.deg_fusion.pitch != 0.0f))
+        if ((g_remote.controller.right_switch == DOWN) && (g_imu.deg_fusion.pitch != 0.0f) && (g_imu.imu_ready_flag == 1) && (g_remote.controller.left_stick.y != -660))
         {
             g_robot_state.safely_started = 1;
         }

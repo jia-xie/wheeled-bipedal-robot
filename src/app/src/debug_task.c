@@ -11,6 +11,7 @@
 #include "jetson_orin.h"
 #include "bsp_daemon.h"
 #include "wlb_lqr_controller.h"
+#include "mf_motor.h"
 
 extern lqr_ss_t g_lqr_left_state, g_lqr_right_state;
 extern Robot_State_t g_robot_state;
@@ -35,6 +36,8 @@ extern lqr_u_t g_u_left, g_u_right;
 #include "chassis_task.h"
 extern Chassis_t g_chassis;
 extern float vel_kalman;
+extern MF_Motor_Handle_t *g_left_foot_motor;
+extern lqr_ss_t g_lqr_left_state, g_lqr_right_state;
 void Debug_Task_Loop(void)
 {
 #ifdef DEBUG_ENABLED
@@ -78,7 +81,8 @@ void Debug_Task_Loop(void)
     DEBUG_PRINTF(&huart6, ">y_ddot:%f\n", g_imu.accel_earth[1]);
     DEBUG_PRINTF(&huart6, ">x_ddot:%f\n", g_imu.accel_earth[0]);
     DEBUG_PRINTF(&huart6, ">z_ddot:%f\n", g_imu.accel_earth[2]);
-
+    DEBUG_PRINTF(&huart6, ">before:%f\n", -g_left_foot_motor->stats->velocity * DEG_TO_RAD * FOOT_WHEEL_RADIUS);
+    DEBUG_PRINTF(&huart6, ">after:%f\n", g_lqr_left_state.x_dot);
     // DEBUG_PRINTF(&huart6, ">pitch:%f\n>pid_vel:%f\n>pid_ang:%f\n", g_lqr_right_state.phi, g_balance_vel_pid.output, g_balance_angle_pid.output);
 #endif
 }

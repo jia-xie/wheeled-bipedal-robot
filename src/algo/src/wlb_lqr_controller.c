@@ -15,21 +15,21 @@
 #define LQR26 (0.8019f)
 
 #define OPENSOURCE_COORDINATE
+//    Q=diag([0.1 0.1 100 50 5000 1]);
+//    R=diag([150 5]);  
 float lqr_poly_fit_param[12][4] = 
-{
-{-162.7817,184.7027,-92.9200,1.9894},
-{9.3663,-5.9800,-5.6335,0.2701},
-{-104.5829,96.8277,-31.8193,1.3915},
-{-109.5617,102.7483,-35.3979,1.4859},
-{62.6867,-9.9544,-23.5856,10.6094},
-{13.1709,-6.8554,-0.8303,1.1092},
-{848.2953,-670.0691,151.4642,8.5111},
-{82.7918,-76.2390,24.3390,-0.0572},
-{59.2303,0.7792,-31.0979,12.3883},
-{84.7422,-18.7684,-27.3311,13.2261},
-{1337.1600,-1243.9041,411.9104,-19.7058},
-{130.9799,-125.3947,43.3152,-3.2934}
-};
+{{-146.8397,178.1973,-83.7881,2.8443},
+{8.5304,-3.7974,-3.5802,0.2173},
+{-40.5217,39.2950,-13.5266,0.9230},
+{-57.9757,56.6803,-19.9446,1.3387},
+{195.0357,-122.9509,9.7593,6.2244},
+{28.3143,-20.0813,3.1549,0.5661},
+{1473.2038,-1142.9067,247.5109,5.8574},
+{105.5269,-94.7226,27.2942,-0.5018},
+{135.5466,-83.0411,4.9135,4.6654},
+{206.4120,-129.2789,9.6747,6.7037},
+{1603.1755,-1567.6944,545.5435,-38.7507},
+{130.3261,-137.4586,52.2075,-5.0431}};
 void LQR_Output(lqr_u_t *u, lqr_ss_t *state)
 {
 float len = state->leg_len;
@@ -38,13 +38,13 @@ float len_cub = len * len * len;
 
     u->T_A = (lqr_poly_fit_param[0 ][0] * len_cub + lqr_poly_fit_param[0 ][1] * len_sqrt + lqr_poly_fit_param[0 ][2] * len + lqr_poly_fit_param[0 ][3]) * -state->theta +
              (lqr_poly_fit_param[1 ][0] * len_cub + lqr_poly_fit_param[1 ][1] * len_sqrt + lqr_poly_fit_param[1 ][2] * len + lqr_poly_fit_param[1 ][3]) * -state->theta_dot +
-             (lqr_poly_fit_param[2 ][0] * len_cub + lqr_poly_fit_param[2 ][1] * len_sqrt + lqr_poly_fit_param[2 ][2] * len + lqr_poly_fit_param[2 ][3]) * (state->target_x-state->x) +
+             0*(lqr_poly_fit_param[2 ][0] * len_cub + lqr_poly_fit_param[2 ][1] * len_sqrt + lqr_poly_fit_param[2 ][2] * len + lqr_poly_fit_param[2 ][3]) * (state->target_x-state->x) +
              (lqr_poly_fit_param[3 ][0] * len_cub + lqr_poly_fit_param[3 ][1] * len_sqrt + lqr_poly_fit_param[3 ][2] * len + lqr_poly_fit_param[3 ][3]) * (state->target_x_dot - state->x_dot) +
              (lqr_poly_fit_param[4 ][0] * len_cub + lqr_poly_fit_param[4 ][1] * len_sqrt + lqr_poly_fit_param[4 ][2] * len + lqr_poly_fit_param[4 ][3]) * -state->phi +
              (lqr_poly_fit_param[5 ][0] * len_cub + lqr_poly_fit_param[5 ][1] * len_sqrt + lqr_poly_fit_param[5 ][2] * len + lqr_poly_fit_param[5 ][3]) * -state->phi_dot;
     u->T_B = (lqr_poly_fit_param[6 ][0] * len_cub + lqr_poly_fit_param[6 ][1] * len_sqrt + lqr_poly_fit_param[6 ][2] * len + lqr_poly_fit_param[6 ][3]) * -state->theta +
              (lqr_poly_fit_param[7 ][0] * len_cub + lqr_poly_fit_param[7 ][1] * len_sqrt + lqr_poly_fit_param[7 ][2] * len + lqr_poly_fit_param[7 ][3]) * -state->theta_dot +
-             (lqr_poly_fit_param[8 ][0] * len_cub + lqr_poly_fit_param[8 ][1] * len_sqrt + lqr_poly_fit_param[8 ][2] * len + lqr_poly_fit_param[8 ][3]) * (state->target_x-state->x) +
+             0*(lqr_poly_fit_param[8 ][0] * len_cub + lqr_poly_fit_param[8 ][1] * len_sqrt + lqr_poly_fit_param[8 ][2] * len + lqr_poly_fit_param[8 ][3]) * (state->target_x-state->x) +
              (lqr_poly_fit_param[9 ][0] * len_cub + lqr_poly_fit_param[9 ][1] * len_sqrt + lqr_poly_fit_param[9 ][2] * len + lqr_poly_fit_param[9 ][3]) * (state->target_x_dot-state->x_dot) +
              (lqr_poly_fit_param[10][0] * len_cub + lqr_poly_fit_param[10][1] * len_sqrt + lqr_poly_fit_param[10][2] * len + lqr_poly_fit_param[10][3]) * -state->phi +
              (lqr_poly_fit_param[11][0] * len_cub + lqr_poly_fit_param[11][1] * len_sqrt + lqr_poly_fit_param[11][2] * len + lqr_poly_fit_param[11][3]) * -state->phi_dot;
