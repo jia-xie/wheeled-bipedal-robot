@@ -35,6 +35,8 @@ typedef struct leg
 
     float current_disp, current_vel, current_theta, current_theta_dot, last_theta;
     float target_leg_virtual_force, target_leg_virtual_torq, target_wheel_torq;
+    float compensatioin_torq;
+    float target_length;
     uint32_t current_tick, last_tick;
 } Leg_t;
 

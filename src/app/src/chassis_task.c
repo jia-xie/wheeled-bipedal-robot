@@ -132,8 +132,8 @@ void Chassis_Task_Init()
     g_right_foot_motor = MF_Motor_Init(motor_config);
 
     MF_Motor_Broadcast_Init(1);
-    PID_Init(&g_pid_left_leg_length, 1000.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
-    PID_Init(&g_pid_right_leg_length, 1000.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_left_leg_length, 5000.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_right_leg_length, 5000.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
 
     PID_Init(&g_pid_left_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
     PID_Init(&g_pid_right_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
@@ -300,7 +300,7 @@ void _get_leg_statistics()
     // g_leg_right.phi4_dot = g_motor_rb->stats->velocity;
 }
 
-void _target_state_update(Remote_t *remote)
+void _target_state_update(Remote_t *remote, float forward_speed, float turning_speed)
 {
     g_chassis.target_yaw_speed = -remote->controller.right_stick.x / 660.0f * 12.0f;
     g_chassis.target_yaw += g_chassis.target_yaw_speed * TASK_TIME;
@@ -310,14 +310,26 @@ void _target_state_update(Remote_t *remote)
     g_lqr_right_state.target_x_dot = g_chassis.target_vel; // + g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
     g_lqr_right_state.target_x += g_lqr_right_state.target_x_dot * TASK_TIME;
     g_robot_state.chassis_height += remote->controller.right_stick.y / 660.0f * 0.2f * TASK_TIME;
+
+    // turning centripetal force
+    float turning_radius = turning_speed > 0.4f ? forward_speed / turning_speed : 99.0f;
+    float centripetal_force = turning_speed > 0.4f ? 16.0f * turning_speed * turning_speed / turning_radius : 0; // m * v^2 / r
+    turning_radius = turning_radius < 0.5f ? 0.5f : turning_radius;
+    g_chassis.turning_radius = turning_radius;
+    g_chassis.centripetal_force = centripetal_force;
     __MAX_LIMIT(g_robot_state.chassis_height, 0.1f, 0.35f);
 }
 
 void _leg_length_controller(float chassis_height)
 {
-    float feedforward_weight = 40.0f;
+    float feedforward_weight = 90.0f;
+    // g_leg_left.compensatioin_torq = -g_chassis.centripetal_force * 0.5f;
+    // g_leg_right.compensatioin_torq = +g_chassis.centripetal_force * 0.5f;
+
     g_leg_left.target_leg_virtual_force = PID_dt(&g_pid_left_leg_length, chassis_height - g_leg_left.length, TASK_TIME) + feedforward_weight;
     g_leg_right.target_leg_virtual_force = PID_dt(&g_pid_right_leg_length, chassis_height - g_leg_right.length, TASK_TIME) + feedforward_weight;
+    // g_leg_left.target_leg_virtual_force += g_leg_left.compensatioin_torq;
+    // g_leg_right.target_leg_virtual_force += g_leg_right.compensatioin_torq;
     g_leg_left.target_leg_virtual_torq = -g_u_left.T_B;
     g_leg_right.target_leg_virtual_torq = g_u_right.T_B;
 }
@@ -356,7 +368,7 @@ void Chassis_Disable()
 void Chassis_Ctrl_Loop()
 {
     _wheel_leg_estimation(g_imu.rad.yaw, -g_imu.rad_fusion.roll, -g_imu.bmi088_raw.gyro[0]);
-    _target_state_update(&g_remote);
+    _target_state_update(&g_remote, g_lqr_left_state.x_dot, g_imu.bmi088_raw.gyro[2]);
     _leg_length_controller(g_robot_state.chassis_height);
     _lqr_balancce_controller();
     _vmc_torq_calc();

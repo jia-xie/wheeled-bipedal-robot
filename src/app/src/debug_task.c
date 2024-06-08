@@ -61,28 +61,31 @@ void Debug_Task_Loop(void)
     // }
     //DEBUG_PRINTF(&huart6, "/*%f,%f*/", g_swerve_fl.azimuth_motor->angle_pid->ref,g_swerve_fl.azimuth_motor->stats->absolute_angle_rad);
     // DEBUG_PRINTF(&huart6, "/*%f,%f*/", g_robot_state.chassis_total_power, Referee_Robot_State.Chassis_Power);
-    DEBUG_PRINTF(&huart6, ">TA_l:%f\n>TB_l:%f\n", g_u_left.T_A, g_u_left.T_B);
-    DEBUG_PRINTF(&huart6, ">TA_r:%f\n>TB_r:%f\n", g_u_right.T_A, g_u_right.T_B);
+    // DEBUG_PRINTF(&huart6, ">TA_l:%f\n>TB_l:%f\n", g_u_left.T_A, g_u_left.T_B);
+    // DEBUG_PRINTF(&huart6, ">TA_r:%f\n>TB_r:%f\n", g_u_right.T_A, g_u_right.T_B);
     
-    DEBUG_PRINTF(&huart6, ">x_l:%f\n>x_dot_l:%f\n>theta_l:%f\n>theta_dot_l:%f\n>phi_l:%f\n>phi_dot_l:%f\n", g_lqr_left_state.x, g_lqr_left_state.x_dot, g_lqr_left_state.theta, g_lqr_left_state.theta_dot, g_lqr_left_state.phi, g_lqr_left_state.phi_dot);
-    DEBUG_PRINTF(&huart6, ">x_r:%f\n>x_dot_r:%f\n>theta_r:%f\n>theta_dot_r:%f\n>phi_r:%f\n>phi_dot_r:%f\n", g_lqr_right_state.x, g_lqr_right_state.x_dot, g_lqr_right_state.theta, g_lqr_right_state.theta_dot, g_lqr_right_state.phi, g_lqr_right_state.phi_dot);
-    DEBUG_PRINTF(&huart6, ">anti:%f\n", g_pid_anti_split.output);
+    // DEBUG_PRINTF(&huart6, ">x_l:%f\n>x_dot_l:%f\n>theta_l:%f\n>theta_dot_l:%f\n>phi_l:%f\n>phi_dot_l:%f\n", g_lqr_left_state.x, g_lqr_left_state.x_dot, g_lqr_left_state.theta, g_lqr_left_state.theta_dot, g_lqr_left_state.phi, g_lqr_left_state.phi_dot);
+    // DEBUG_PRINTF(&huart6, ">x_r:%f\n>x_dot_r:%f\n>theta_r:%f\n>theta_dot_r:%f\n>phi_r:%f\n>phi_dot_r:%f\n", g_lqr_right_state.x, g_lqr_right_state.x_dot, g_lqr_right_state.theta, g_lqr_right_state.theta_dot, g_lqr_right_state.phi, g_lqr_right_state.phi_dot);
+    // DEBUG_PRINTF(&huart6, ">anti:%f\n", g_pid_anti_split.output);
 
-    DEBUG_PRINTF(&huart6, ">left_x:%f\n", g_lqr_left_state.target_x);
-    DEBUG_PRINTF(&huart6, ">left_x_dot:%f\n", g_lqr_left_state.target_x_dot);
-    DEBUG_PRINTF(&huart6, ">right_x:%f\n", g_lqr_right_state.target_x);
-    DEBUG_PRINTF(&huart6, ">right_x_dot:%f\n", g_lqr_right_state.target_x_dot);
+    // DEBUG_PRINTF(&huart6, ">left_x:%f\n", g_lqr_left_state.target_x);
+    // DEBUG_PRINTF(&huart6, ">left_x_dot:%f\n", g_lqr_left_state.target_x_dot);
+    // DEBUG_PRINTF(&huart6, ">right_x:%f\n", g_lqr_right_state.target_x);
+    // DEBUG_PRINTF(&huart6, ">right_x_dot:%f\n", g_lqr_right_state.target_x_dot);
 
-    DEBUG_PRINTF(&huart6, ">pitch_fusion:%f\n", g_imu.rad_fusion.pitch);
-    DEBUG_PRINTF(&huart6, ">yaw_fusion:%f\n", g_imu.rad_fusion.yaw);
-    DEBUG_PRINTF(&huart6, ">pitch_m:%f\n", g_imu.deg.pitch);
-    DEBUG_PRINTF(&huart6, ">yaw_m:%f\n", g_imu.deg.yaw);
-    DEBUG_PRINTF(&huart6, ">kalman_test:%f\n", vel_kalman);
-    DEBUG_PRINTF(&huart6, ">y_ddot:%f\n", g_imu.accel_earth[1]);
-    DEBUG_PRINTF(&huart6, ">x_ddot:%f\n", g_imu.accel_earth[0]);
-    DEBUG_PRINTF(&huart6, ">z_ddot:%f\n", g_imu.accel_earth[2]);
-    DEBUG_PRINTF(&huart6, ">before:%f\n", -g_left_foot_motor->stats->velocity * DEG_TO_RAD * FOOT_WHEEL_RADIUS);
-    DEBUG_PRINTF(&huart6, ">after:%f\n", g_lqr_left_state.x_dot);
+    // DEBUG_PRINTF(&huart6, ">pitch_fusion:%f\n", g_imu.rad_fusion.pitch);
+    // DEBUG_PRINTF(&huart6, ">yaw_fusion:%f\n", g_imu.rad_fusion.yaw);
+    // DEBUG_PRINTF(&huart6, ">pitch_m:%f\n", g_imu.deg.pitch);
+    // DEBUG_PRINTF(&huart6, ">yaw_m:%f\n", g_imu.deg.yaw);
+    // DEBUG_PRINTF(&huart6, ">kalman_test:%f\n", vel_kalman);
+    // DEBUG_PRINTF(&huart6, ">y_ddot:%f\n", g_imu.accel_earth[1]);
+    // DEBUG_PRINTF(&huart6, ">x_ddot:%f\n", g_imu.accel_earth[0]);
+    // DEBUG_PRINTF(&huart6, ">z_ddot:%f\n", g_imu.accel_earth[2]);
+    // DEBUG_PRINTF(&huart6, ">before:%f\n", -g_left_foot_motor->stats->velocity * DEG_TO_RAD * FOOT_WHEEL_RADIUS);
+    // DEBUG_PRINTF(&huart6, ">after:%f\n", g_lqr_left_state.x_dot);
+    DEBUG_PRINTF(&huart6, ">central:%f\n", g_chassis.centripetal_force);
+    DEBUG_PRINTF(&huart6, ">r:%f\n", g_chassis.turning_radius);
+    DEBUG_PRINTF(&huart6, ">yaw_rate:%f\n", g_imu.bmi088_raw.gyro[2]);
     // DEBUG_PRINTF(&huart6, ">pitch:%f\n>pid_vel:%f\n>pid_ang:%f\n", g_lqr_right_state.phi, g_balance_vel_pid.output, g_balance_angle_pid.output);
 #endif
 }
