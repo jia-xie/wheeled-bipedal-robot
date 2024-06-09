@@ -41,6 +41,7 @@ void Robot_Init()
     Buzzer_Init();
     FusionAhrsInitialise(&g_fusion_ahrs);
     CAN_Service_Init();
+    Board_Comm_Task_Init();
 #ifdef MASTER
     Melody_t system_init_melody = {
         .notes = SYSTEM_INITIALIZING,
@@ -48,7 +49,6 @@ void Robot_Init()
         .note_num = SYSTEM_INITIALIZING_NOTE_NUM,
     };
     Buzzer_Play_Melody(system_init_melody); // TODO: Change to non-blocking
-    Board_Comm_Task_Init();
     // Initialize all hardware
     Chassis_Task_Init();
     // Gimbal_Task_Init();
