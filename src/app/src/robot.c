@@ -29,6 +29,8 @@ Key_Prev_t g_key_prev = {0};
 extern Launch_Target_t g_launch_target;
 extern Remote_t g_remote;
 extern FusionAhrs g_fusion_ahrs;
+extern uint8_t g_board_comm_first_part_established;
+extern uint8_t g_board_comm_second_part_established;
 uint8_t g_start_safely = 0;
 
 void Robot_Cmd_Loop(void);
@@ -236,7 +238,8 @@ void Robot_Cmd_Loop()
     {
         // Ensure controller is down before enabling robot, ensure imu is initialized before enabling robot
 #ifdef MASTER
-        if ((g_remote.controller.right_switch == DOWN) && (g_imu.deg_fusion.pitch != 0.0f) && (g_imu.imu_ready_flag == 1) && (g_remote.controller.left_stick.y != -660))
+        if ((g_remote.controller.right_switch == DOWN) && (g_imu.deg_fusion.pitch != 0.0f) && (g_imu.imu_ready_flag == 1) \
+        && (g_remote.controller.left_stick.y != -660) && g_board_comm_first_part_established == 1 && g_board_comm_second_part_established == 1)
 #else
         if ((g_imu.deg_fusion.pitch != 0.0f) && (g_imu.imu_ready_flag == 1))
 #endif

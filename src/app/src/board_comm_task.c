@@ -12,7 +12,8 @@ CAN_Instance_t *g_board_comm_part2;
 uint8_t g_board_comm_first_part_sending_pending = 0;
 uint8_t g_board_comm_second_part_sending_pending = 0;
 uint8_t g_board_comm_initialized = 0;
-
+uint8_t g_board_comm_first_part_established = 0;
+uint8_t g_board_comm_second_part_established = 0;
 void board_comm_recv_first_part(CAN_Instance_t *can_instance);
 void board_comm_recv_second_part(CAN_Instance_t *can_instance);
 
@@ -30,11 +31,13 @@ void Board_Comm_Task_Init()
 
 void board_comm_recv_first_part(CAN_Instance_t *can_instance)
 {
+    g_board_comm_first_part_established = 1;
     memcpy(&g_board_comm_package.robot_pitch, can_instance->rx_buffer, 8);
 }
 
 void board_comm_recv_second_part(CAN_Instance_t *can_instance)
 {
+    g_board_comm_second_part_established = 1;
     memcpy(&g_board_comm_package.x_acceleration, can_instance->rx_buffer, 8);
 }
 

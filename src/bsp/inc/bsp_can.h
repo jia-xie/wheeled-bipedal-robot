@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define CAN_MAX_DEVICE (8)
+#define CAN_MAX_DEVICE (12)
 
 typedef struct _
 {

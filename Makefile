@@ -117,8 +117,8 @@ src/algo/src/five_bar_leg.c \
 src/algo/src/kalman_filter.c \
 src/algo/src/wlb_lqr_controller.c \
 src/algo/src/FusionAhrs.c \
-src/algo/src/FUsionCompass.c \
-src/algo/src/FUsionOffset.c \
+src/algo/src/FusionCompass.c \
+src/algo/src/FusionOffset.c \
 src/bsp/src/bsp_can.c \
 src/bsp/src/bsp_delay.c \
 src/bsp/src/bsp_daemon.c \

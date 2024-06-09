@@ -9,7 +9,9 @@
 #include "wlb_lqr_controller.h"
 #include "robot_param.h"
 #include "kalman_filter.h"
+#include "board_comm_task.h"
 
+extern Board_Comm_Package_t g_board_comm_package;
 float vel_kalman;
 /* Kalman Filter */
 float vaEstimateKF_F[4] = {1.0f, 0.003f,
@@ -255,7 +257,7 @@ if (g_imu.imu_ready_flag) {
 	vrb=wr*FOOT_WHEEL_RADIUS+g_leg_right.length*g_lqr_right_state.theta_dot*arm_cos_f32(g_lqr_right_state.theta)+g_leg_right.length_dot*arm_sin_f32(g_lqr_right_state.theta_dot);//机体b系的速度
 		
 	aver_v=(vrb+vlb)/2.0f;//取平均
-    xvEstimateKF_Update(&vaEstimateKF,g_imu.accel_body[1],aver_v);
+    xvEstimateKF_Update(&vaEstimateKF,g_board_comm_package.x_acceleration,aver_v);
 		
 		//原地自转的过程中v_filter和x_filter应该都是为0
 	vel_kalman=vel_acc[0];//得到卡尔曼滤波后的速度
@@ -367,7 +369,7 @@ void Chassis_Disable()
 
 void Chassis_Ctrl_Loop()
 {
-    _wheel_leg_estimation(g_imu.rad.yaw, g_imu.rad_fusion.roll, g_imu.bmi088_raw.gyro[0]);
+    _wheel_leg_estimation(g_board_comm_package.yaw, g_board_comm_package.robot_pitch, g_board_comm_package.robot_pitch_rate);
     _target_state_update(&g_remote, g_lqr_left_state.x_dot, g_imu.bmi088_raw.gyro[2]);
     _leg_length_controller(g_robot_state.chassis_height);
     _lqr_balancce_controller();
