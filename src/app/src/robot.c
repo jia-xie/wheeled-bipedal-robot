@@ -51,7 +51,7 @@ void Robot_Init()
     Buzzer_Play_Melody(system_init_melody); // TODO: Change to non-blocking
     // Initialize all hardware
     Chassis_Task_Init();
-    // Gimbal_Task_Init();
+    Gimbal_Task_Init();
     // Launch_Task_Init();
     Remote_Init(&huart3);
     Referee_System_Init(&huart1);
@@ -77,7 +77,7 @@ void Robot_Ctrl_Loop()
     Referee_Get_Data();
     Referee_Set_Robot_State();
     Chassis_Ctrl_Loop();
-    // Gimbal_Ctrl_Loop();
+    Gimbal_Ctrl_Loop();
     // Launch_Ctrl_Loop();
 #endif
 }
