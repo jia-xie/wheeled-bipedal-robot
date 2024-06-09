@@ -14,7 +14,8 @@
 #include "buzzer.h"
 #include "ui.h"
 #include "Fusion.h"
-
+#include "robot_param.h"
+#include "board_comm_task.h"
 extern DJI_Motor_Handle_t *g_yaw;
 #define SPIN_TOP_OMEGA (1.0f)
 
@@ -36,22 +37,32 @@ void _toggle_robot_state(uint8_t *state);
 void Robot_Init()
 {
     Buzzer_Init();
+    FusionAhrsInitialise(&g_fusion_ahrs);
+    CAN_Service_Init();
+#ifdef MASTER
     Melody_t system_init_melody = {
         .notes = SYSTEM_INITIALIZING,
         .loudness = 0.5f,
         .note_num = SYSTEM_INITIALIZING_NOTE_NUM,
     };
     Buzzer_Play_Melody(system_init_melody); // TODO: Change to non-blocking
-
+    Board_Comm_Task_Init();
     // Initialize all hardware
     Chassis_Task_Init();
-    FusionAhrsInitialise(&g_fusion_ahrs);
     // Gimbal_Task_Init();
     // Launch_Task_Init();
     Remote_Init(&huart3);
-    CAN_Service_Init();
     Referee_System_Init(&huart1);
     //Jetson_Orin_Init(&huart6);
+#else
+    Melody_t system_init_melody = {
+        .notes = SYSTEM_READY,
+        .loudness = 0.5f,
+        .note_num = SYSTEM_READY_NOTE_NUM,
+    };
+    Buzzer_Play_Melody(system_init_melody); // TODO: Change to non-blocking
+#endif
+
     //  Initialize all tasks
     Robot_Tasks_Start();
 }
@@ -60,11 +71,13 @@ void Robot_Ctrl_Loop()
 {
     // Control loop for the robot
     Robot_Cmd_Loop();
+#ifdef MASTER
     Referee_Get_Data();
     Referee_Set_Robot_State();
     Chassis_Ctrl_Loop();
     // Gimbal_Ctrl_Loop();
     // Launch_Ctrl_Loop();
+#endif
 }
 /**
  *  B - Flywheel On Off
@@ -222,7 +235,11 @@ void Robot_Cmd_Loop()
     else
     {
         // Ensure controller is down before enabling robot, ensure imu is initialized before enabling robot
+#ifdef MASTER
         if ((g_remote.controller.right_switch == DOWN) && (g_imu.deg_fusion.pitch != 0.0f) && (g_imu.imu_ready_flag == 1) && (g_remote.controller.left_stick.y != -660))
+#else
+        if ((g_imu.deg_fusion.pitch != 0.0f) && (g_imu.imu_ready_flag == 1))
+#endif
         {
             g_robot_state.safely_started = 1;
         }

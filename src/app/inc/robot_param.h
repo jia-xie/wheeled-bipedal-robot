@@ -2,7 +2,7 @@
 #define ROBOT_PARAM_H
 
 #define DEBUG
-
+#define MASTER
 /* Motor ID */
 #define LEFT_FRONT_ID 0x00
 #define RIGHT_FRONT_ID 0x01
