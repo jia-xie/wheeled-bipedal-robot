@@ -29,6 +29,7 @@ typedef struct {
 
   /* Wheel Legged */
   float chassis_height;
+  uint8_t wheel_facing_mode;
 } Robot_State_t;
 
 typedef struct {

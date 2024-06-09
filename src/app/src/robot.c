@@ -22,7 +22,7 @@ extern DJI_Motor_Handle_t *g_yaw;
 #define KEYBOARD_RAMP_COEF (0.004f)
 #define SPINTOP_COEF (0.003f)
 #define CONTROLLER_RAMP_COEF (0.8f)
-#define MAX_SPEED (.6f)
+#define MAX_SPEED (1.6f)
 
 Robot_State_t g_robot_state = {0, 0};
 Key_Prev_t g_key_prev = {0};
@@ -108,10 +108,22 @@ void Robot_Cmd_Loop()
             g_robot_state.vx *= MAX_SPEED;
             g_robot_state.vy *= MAX_SPEED;
 
-            float theta = DJI_Motor_Get_Absolute_Angle(g_yaw);
-            g_robot_state.chassis_x_speed = -g_robot_state.vy * sin(theta) + g_robot_state.vx * cos(theta);
-            g_robot_state.chassis_y_speed = g_robot_state.vy * cos(theta) + g_robot_state.vx * sin(theta);
+            // Coordinate of the wheel legged chassis is opposite of the leg coordinate, therefore the sign is flipped
+            g_robot_state.vx *= -1;
+            g_robot_state.vy *= -1;
 
+            g_robot_state.chassis_y_speed = g_robot_state.vy;
+            g_robot_state.chassis_x_speed = g_robot_state.vx;
+
+            // Wheel Facing Mode
+            if (fabs(g_robot_state.chassis_y_speed) < 0.05f && fabs(g_robot_state.chassis_x_speed) > 0.08f)
+            {
+                g_robot_state.wheel_facing_mode = 1;
+            }
+            if (fabs(g_robot_state.chassis_y_speed) > 0.08f && fabs(g_robot_state.chassis_x_speed) < 0.05f)
+            {
+                g_robot_state.wheel_facing_mode = 0;
+            }
             if (g_remote.controller.left_switch == DOWN)
             {
                 if (g_key_prev.prev_left_switch != DOWN)
@@ -136,14 +148,6 @@ void Robot_Cmd_Loop()
             }
             g_key_prev.prev_left_switch = g_remote.controller.left_switch;
 
-            if (g_robot_state.spintop_mode)
-            {
-                g_robot_state.chassis_omega = (1 - SPINTOP_COEF) * g_robot_state.chassis_omega + SPINTOP_COEF * SPIN_TOP_OMEGA;
-            }
-            else
-            {
-                g_robot_state.chassis_omega = (1 - SPINTOP_COEF) * g_robot_state.chassis_omega + 0.0f;
-            }
             /* Chassis ends here */
 
             /* Gimbal starts here */

@@ -14,6 +14,8 @@ typedef struct chassis_s
     float wheel_x_turning_offset;
     float turning_radius;
     float centripetal_force;
+    float angle_diff;
+    float forward_speed;
 } Chassis_t;
 
 // Function prototypes
