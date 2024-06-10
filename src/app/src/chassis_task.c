@@ -51,6 +51,8 @@ const float vaEstimateKF_H[4] = {1.0f, 0.0f,
 
 #define FOOT_MOTOR_MAX_TORQ (2.4f)
 #define FOOT_MF9025_MAX_TORQ_INT ((FOOT_MOTOR_MAX_TORQ / MF9025_TORQ_CONSTANT) / 16.5f * 2048.0f)
+#define CHASSIS_DEFAULT_HEIGHT (0.13f)
+
 float vel_acc[2];
 KalmanFilter_t vaEstimateKF;
 extern Robot_State_t g_robot_state;
@@ -138,8 +140,8 @@ void Chassis_Task_Init()
     g_right_foot_motor = MF_Motor_Init(motor_config);
 
     MF_Motor_Broadcast_Init(1);
-    PID_Init(&g_pid_left_leg_length, 1500.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
-    PID_Init(&g_pid_right_leg_length, 2000.0f, 0.0f, 150.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_left_leg_length, 8500.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_right_leg_length, 8500.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
 
     PID_Init(&g_pid_left_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
     PID_Init(&g_pid_right_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
@@ -150,8 +152,8 @@ void Chassis_Task_Init()
     PID_Init(&g_pid_yaw_angle, 5.0f, 0.0f, 1.1f, 10.0f, 0.0f, 0.0f);
     PID_Init(&g_pid_anti_split, 50.0f, 0.0f, 4.0f, 20.0f, 0.0f, 0.0f);
 
-    PID_Init(&g_pid_follow_gimbal, 8.0f, 0.0f, 0.95f, 10.0f, 0.0f, 0.0f);
-    g_robot_state.chassis_height = 0.10f;
+    PID_Init(&g_pid_follow_gimbal, 8.0f, 0.0f, 0.95f, 6.0f, 0.0f, 0.0f);
+    g_robot_state.chassis_height = CHASSIS_DEFAULT_HEIGHT;
 
     xvEstimateKF_Init(&vaEstimateKF);
 }
@@ -263,7 +265,7 @@ void _target_state_reset()
 {
     g_lqr_left_state.target_x = g_lqr_left_state.x;
     g_lqr_right_state.target_x = g_lqr_right_state.x;
-    g_robot_state.chassis_height = 0.1f;
+    g_robot_state.chassis_height = CHASSIS_DEFAULT_HEIGHT;
     g_chassis.target_yaw = g_chassis.current_yaw;
 
     PID_Reset(&g_pid_left_leg_length);
@@ -424,7 +426,7 @@ void _chassis_cmd()
         g_chassis.target_yaw_speed = PID_dt(&g_pid_follow_gimbal, g_chassis.angle_diff, TASK_TIME);
     }
     g_robot_state.chassis_height += g_remote.controller.wheel / 660.0f * 0.003f;
-    __MAX_LIMIT(g_robot_state.chassis_height, 0.1f, 0.35f);
+    __MAX_LIMIT(g_robot_state.chassis_height, 0.1f, 0.39f);
 }
 
 void Chassis_Ctrl_Loop()

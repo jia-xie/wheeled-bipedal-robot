@@ -94,6 +94,7 @@ void Robot_Cmd_Loop()
         {
             g_robot_state.enabled = 0;
             g_launch_target.flywheel_enabled = 0;
+            g_robot_state.gimbal_yaw_angle = g_imu.rad.yaw;
         }
         else
         {
