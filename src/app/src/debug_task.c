@@ -32,7 +32,7 @@ extern PID_t g_pid_anti_split;
 const char* top_border = "\r\n\r\n\r\n/***** System Info *****/\r\n";
 const char* bottom_border = "/***** End of Info *****/\r\n";
 extern lqr_u_t g_u_left, g_u_right;
-#define DEBUG_ENABLED
+// #define DEBUG_ENABLED
 #include "chassis_task.h"
 extern Chassis_t g_chassis;
 extern float vel_kalman;

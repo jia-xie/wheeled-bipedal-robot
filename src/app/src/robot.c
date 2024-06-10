@@ -74,7 +74,6 @@ void Robot_Ctrl_Loop()
     // Control loop for the robot
     Robot_Cmd_Loop();
 #ifdef MASTER
-    Referee_Get_Data();
     Referee_Set_Robot_State();
     Chassis_Ctrl_Loop();
     Gimbal_Ctrl_Loop();
