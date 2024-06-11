@@ -18,8 +18,11 @@
 #include "board_comm_task.h"
 extern DJI_Motor_Handle_t *g_yaw;
 #define SPIN_TOP_OMEGA (1.0f)
+#define ROBOT_TASK_PERIOD (0.002f)
+#define MAX_YAW_SPEED_RAD (7.5f)
 
-#define KEYBOARD_RAMP_COEF (0.004f)
+#define MAX_YAW_INCREMENT (MAX_YAW_SPEED_RAD * ROBOT_TASK_PERIOD)
+#define KEYBOARD_RAMP_COEF (0.01f)
 #define SPINTOP_COEF (0.003f)
 #define CONTROLLER_RAMP_COEF (0.8f)
 #define MAX_SPEED (1.6f)
@@ -52,7 +55,7 @@ void Robot_Init()
     // Initialize all hardware
     Chassis_Task_Init();
     Gimbal_Task_Init();
-    // Launch_Task_Init();
+    Launch_Task_Init();
     Remote_Init(&huart3);
     Referee_System_Init(&huart1);
     //Jetson_Orin_Init(&huart6);
@@ -77,7 +80,7 @@ void Robot_Ctrl_Loop()
     Referee_Set_Robot_State();
     Chassis_Ctrl_Loop();
     Gimbal_Ctrl_Loop();
-    // Launch_Ctrl_Loop();
+    Launch_Ctrl_Loop();
 #endif
 }
 /**
@@ -101,12 +104,25 @@ void Robot_Cmd_Loop()
             g_robot_state.enabled = 1;
 
             /* Gimbal starts here */ // (Launch enable in last if statement)
+            if (g_remote.keyboard.Shift == 1)
+            {
+                g_robot_state.chassis_move_speed_ratio = 1.5f;
+            }
+            else if (g_remote.keyboard.Ctrl == 1)
+            {
+                g_robot_state.chassis_move_speed_ratio = 0.5f;
+            }
+            else
+            {
+                g_robot_state.chassis_move_speed_ratio = 1.0f;
+            }
+
             g_robot_state.vy_keyboard = ((1.0f - KEYBOARD_RAMP_COEF) * g_robot_state.vy_keyboard + g_remote.keyboard.W * KEYBOARD_RAMP_COEF - g_remote.keyboard.S * KEYBOARD_RAMP_COEF);
             g_robot_state.vx_keyboard = ((1.0f - KEYBOARD_RAMP_COEF) * g_robot_state.vx_keyboard - g_remote.keyboard.A * KEYBOARD_RAMP_COEF + g_remote.keyboard.D * KEYBOARD_RAMP_COEF);
             g_robot_state.vx = g_robot_state.vx_keyboard + g_remote.controller.left_stick.x / REMOTE_STICK_MAX;
             g_robot_state.vy = g_robot_state.vy_keyboard + g_remote.controller.left_stick.y / REMOTE_STICK_MAX;
-            g_robot_state.vx *= MAX_SPEED;
-            g_robot_state.vy *= MAX_SPEED;
+            g_robot_state.vx *= MAX_SPEED * g_robot_state.chassis_move_speed_ratio;
+            g_robot_state.vy *= MAX_SPEED * g_robot_state.chassis_move_speed_ratio;
 
             // Coordinate of the wheel legged chassis is opposite of the leg coordinate, therefore the sign is flipped
             g_robot_state.vx *= -1;
@@ -161,7 +177,9 @@ void Robot_Cmd_Loop()
             }
             else if (g_remote.controller.right_switch == MID)
             {
-                g_robot_state.gimbal_yaw_angle -= (g_remote.controller.right_stick.x / 50000.0f + g_remote.mouse.x / 10000.0f);    // controller and mouse
+                float yaw_increment = (g_remote.controller.right_stick.x / 50000.0f + g_remote.mouse.x / 50000.0f);
+                yaw_increment = fabs(yaw_increment) > MAX_YAW_INCREMENT ? (fabs(yaw_increment) / (yaw_increment)) * MAX_YAW_INCREMENT : yaw_increment;
+                g_robot_state.gimbal_yaw_angle -= yaw_increment;    // controller and mouse
                 g_robot_state.gimbal_pitch_angle -= (g_remote.controller.right_stick.y / 100000.0f - g_remote.mouse.y / 50000.0f); // controller and mouse
             }
             /* Gimbal ends here */

@@ -425,7 +425,8 @@ void _chassis_cmd()
     {
         g_chassis.target_yaw_speed = PID_dt(&g_pid_follow_gimbal, g_chassis.angle_diff, TASK_TIME);
     }
-    g_robot_state.chassis_height += g_remote.controller.wheel / 660.0f * 0.003f;
+
+    // this interfere with shooting//g_robot_state.chassis_height += g_remote.controller.wheel / 660.0f * 0.003f;
     __MAX_LIMIT(g_robot_state.chassis_height, 0.1f, 0.39f);
 }
 

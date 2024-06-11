@@ -26,6 +26,7 @@ typedef struct {
   float vy;
   float vx_keyboard;
   float vy_keyboard;
+  float chassis_move_speed_ratio;
 
   /* Wheel Legged */
   float chassis_height;
