@@ -28,6 +28,8 @@ extern DJI_Motor_Handle_t *g_yaw;
 #define MAX_SPEED (1.6f)
 
 Robot_State_t g_robot_state = {0, 0};
+float g_chassis_height_arr[4] = {0.10f, 0.13f, 0.20f, 0.35f};
+int8_t g_current_height_index = 0;
 Key_Prev_t g_key_prev = {0};
 extern Launch_Target_t g_launch_target;
 extern Remote_t g_remote;
@@ -164,6 +166,7 @@ void Robot_Cmd_Loop()
             }
             g_key_prev.prev_left_switch = g_remote.controller.left_switch;
 
+            g_robot_state.chassis_height = g_chassis_height_arr[g_current_height_index];
             /* Chassis ends here */
 
             /* Gimbal starts here */
@@ -225,9 +228,22 @@ void Robot_Cmd_Loop()
             {
                 _toggle_robot_state(&g_robot_state.UI_enabled);
             }
+            if (g_remote.keyboard.F == 1 && g_key_prev.prev_F == 0)
+            {
+                g_current_height_index++;
+                __MAX_LIMIT(g_current_height_index, 0, 3);
+            }
+            if (g_remote.keyboard.C == 1 && g_key_prev.prev_C == 0)
+            {   
+                g_current_height_index--;
+                __MAX_LIMIT(g_current_height_index, 0, 3);
+            }
+
             g_key_prev.prev_B = g_remote.keyboard.B;
             g_key_prev.prev_G = g_remote.keyboard.G;
             g_key_prev.prev_V = g_remote.keyboard.V;
+            g_key_prev.prev_F = g_remote.keyboard.F;
+            g_key_prev.prev_C = g_remote.keyboard.C;
             /* Keyboard Toggles Start Here */
 
             /* AutoAiming Flag, not used only for debug */

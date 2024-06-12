@@ -140,8 +140,8 @@ void Chassis_Task_Init()
     g_right_foot_motor = MF_Motor_Init(motor_config);
 
     MF_Motor_Broadcast_Init(1);
-    PID_Init(&g_pid_left_leg_length, 8500.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
-    PID_Init(&g_pid_right_leg_length, 8500.0f, 0.0f, 100.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_left_leg_length, 8500.0f, 0.0f, 350.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_right_leg_length, 8500.0f, 0.0f, 350.0f, 50.0f, 0.0f, 0.0f);
 
     PID_Init(&g_pid_left_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
     PID_Init(&g_pid_right_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
@@ -439,7 +439,7 @@ void Chassis_Ctrl_Loop()
     _leg_length_controller(g_robot_state.chassis_height);
     _lqr_balancce_controller();
     _vmc_torq_calc();
-    if (g_robot_state.enabled)
+    if (g_robot_state.enabled) // add wheel offline detection
     {
         _hip_motor_torq_ctrl(-g_leg_left.torq4, -g_leg_left.torq1, -g_leg_right.torq4, -g_leg_right.torq1);
         _foot_motor_torq_ctrl(-g_u_left.T_A, g_u_right.T_A);
