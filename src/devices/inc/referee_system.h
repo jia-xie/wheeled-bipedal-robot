@@ -107,6 +107,7 @@ typedef struct
   	uint16_t Shooter_Heat_2;
 	uint8_t Shooting_Frequency;
 	float Shooting_Speed;
+	uint8_t Chassis_Power_Is_On;
 }Referee_Robot_State_t;
 
 typedef struct

@@ -22,7 +22,7 @@ extern DJI_Motor_Handle_t *g_yaw;
 #define MAX_YAW_SPEED_RAD (7.5f)
 
 #define MAX_YAW_INCREMENT (MAX_YAW_SPEED_RAD * ROBOT_TASK_PERIOD)
-#define KEYBOARD_RAMP_COEF (0.01f)
+#define KEYBOARD_RAMP_COEF (0.005f)
 #define SPINTOP_COEF (0.003f)
 #define CONTROLLER_RAMP_COEF (0.8f)
 #define MAX_SPEED (1.6f)
@@ -100,6 +100,7 @@ void Robot_Cmd_Loop()
             g_robot_state.enabled = 0;
             g_launch_target.flywheel_enabled = 0;
             g_robot_state.gimbal_yaw_angle = g_imu.rad.yaw;
+            g_current_height_index = 1;
         }
         else
         {

@@ -1,4 +1,8 @@
 #include "ui_task.h"
+#include "dji_motor.h"
+#include <math.h>
+
+extern DJI_Motor_Handle_t *g_yaw; // Used for chassis orientation
 
 void UI_Task_Loop(void)
 {
@@ -51,5 +55,11 @@ void UI_Task_Loop(void)
         }
         ui_indicator_1_Supercap->number++;
         
+        // Angle Difference
+        float chassis_orientation = -DJI_Motor_Get_Absolute_Angle(g_yaw);
+		ui_indicator_1_Orientation_Line->start_x = 1700.0f + sinf(chassis_orientation)*140.0f;
+		ui_indicator_1_Orientation_Line->start_y = 480.0f - cosf(chassis_orientation)*140.0f;
+		ui_indicator_1_Orientation_Line->end_x = 1700.0f - sinf(chassis_orientation)*140.0f;
+		ui_indicator_1_Orientation_Line->end_y = 480.0f + cosf(chassis_orientation)*140.0f;
         ui_update_indicator_1();
 }

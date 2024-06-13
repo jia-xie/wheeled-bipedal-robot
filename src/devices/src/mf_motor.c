@@ -1,8 +1,13 @@
 #include "mf_motor.h"
 #include "bsp_can.h"
 #include "user_math.h"
+#pragma message "this shouldn't be here (bsp_daemon)"
+#include "bsp_daemon.h"
+extern Daemon_Instance_t *g_daemon_chassis_power_guard;
 #include <stdlib.h>
-
+#include "chassis_task.h"
+#pragma message "online check should be updated so that it's not a direct reference"
+extern Chassis_t g_chassis;
 #pragma message "Check Max Device Number"
 #define MF_MAX_DEVICE (6)
 MF_Motor_Handle_t *g_mf_motors[6] = {NULL};
@@ -86,8 +91,17 @@ void MF_Motor_Broadcast_Torq_Ctrl(uint8_t can_bus, int16_t torq1, int16_t torq2,
 
 }
 
+// void LK_Motor_Status_Update(CAN_Instance_t *can_instance)
+// {
+//     if ((can_instance->can_bus == 1) && ((can_instance->rx_id == 0x147) || (can_instance->rx_id == 0x148))) {
+//         g_chassis.chassis_killed_by_referee = 0;
+//         Daemon_Reload(g_daemon_chassis_power_guard);
+//     }
+// }
+
 void MF_Motor_Decode(CAN_Instance_t *can_instance)
 {
+    // LK_Motor_Status_Update(can_instance);
     uint8_t *data = can_instance->rx_buffer;
     MF_Motor_Stats_t *motor_info = (MF_Motor_Stats_t *)can_instance->binding_motor_stats;
 

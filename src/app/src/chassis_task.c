@@ -12,9 +12,15 @@
 #include "board_comm_task.h"
 #include "gimbal_task.h"
 #include "dji_motor.h"
+#include "bsp_daemon.h"
+#include "referee_system.h"
+
+#define CHASSIS_POWER_OFF_TIMEOUT_MS (300)
 extern DJI_Motor_Handle_t *g_yaw;
+extern Referee_Robot_State_t Referee_Robot_State;
 extern Board_Comm_Package_t g_board_comm_package;
 float vel_kalman;
+uint8_t last_spintop_mode;
 /* Kalman Filter */
 float vaEstimateKF_F[4] = {1.0f, 0.003f,
                            0.0f, 1.0f}; // 状态转移矩阵，控制周期为0.001s
@@ -78,6 +84,7 @@ Leg_t test = {
     .phi1_dot = 0,
     .phi4_dot = 0,
 };
+Daemon_Instance_t *g_daemon_chassis_power_guard;
 void _get_leg_statistics();
 void _wheel_leg_estimation(float robot_yaw, float robot_pitch, float robot_pitch_dot);
 void _leg_length_controller(float chassis_height);
@@ -112,8 +119,16 @@ void xvEstimateKF_Update(KalmanFilter_t *EstimateKF, float acc, float vel)
     }
 }
 
+void _power_chassis_power_callback()
+{
+    g_chassis.chassis_killed_by_referee = 1;
+}
+
 void Chassis_Task_Init()
 {
+    // uint16_t reload_value = CHASSIS_POWER_OFF_TIMEOUT_MS / DAEMON_PERIOD;
+	// uint16_t initial_counter = reload_value;
+	// g_daemon_chassis_power_guard = Daemon_Register(reload_value, initial_counter, _power_chassis_power_callback);
     // Initialize motors
     MF_Motor_Config_t motor_config = {
         .can_bus = 1,
@@ -150,7 +165,7 @@ void Chassis_Task_Init()
     PID_Init(&g_balance_vel_pid, 10.0f, 0.0f, 0.001f, 10.0f, 0.0f, 0.0f);
 
     PID_Init(&g_pid_yaw_angle, 5.0f, 0.0f, 1.1f, 10.0f, 0.0f, 0.0f);
-    PID_Init(&g_pid_anti_split, 50.0f, 0.0f, 4.0f, 20.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_anti_split, 100.0f, 0.0f, 5.0f, 40.0f, 0.0f, 0.0f);
 
     PID_Init(&g_pid_follow_gimbal, 8.0f, 0.0f, 0.95f, 6.0f, 0.0f, 0.0f);
     g_robot_state.chassis_height = CHASSIS_DEFAULT_HEIGHT;
@@ -286,8 +301,16 @@ void _target_state_update(float forward_speed, float turning_speed, float chassi
     g_chassis.target_vel = 0.995f * g_chassis.target_vel + 0.005f * (forward_speed);
     g_lqr_left_state.target_x_dot = g_chassis.target_vel; // - g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
     g_lqr_left_state.target_x += g_lqr_left_state.target_x_dot * TASK_TIME;
+    if (g_robot_state.spintop_mode)
+    {
+    g_lqr_left_state.target_x_dot += g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
+    }
     g_lqr_right_state.target_x_dot = g_chassis.target_vel; // + g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
     g_lqr_right_state.target_x += g_lqr_right_state.target_x_dot * TASK_TIME;
+    if (g_robot_state.spintop_mode)
+    {
+    g_lqr_right_state.target_x_dot -= g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE; // + g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
+    }
     // g_robot_state.chassis_height += remote->controller.right_stick.y / 660.0f * 0.2f * TASK_TIME;
     g_robot_state.chassis_height = chassis_height;
 
@@ -346,6 +369,7 @@ void Chassis_Disable()
 }
 void _chassis_cmd()
 {
+    g_chassis.chassis_killed_by_referee = !Referee_Robot_State.Chassis_Power_Is_On;
     float ideal_angle_diff;
     // Update Target
     if (g_robot_state.wheel_facing_mode == 0)
@@ -419,7 +443,7 @@ void _chassis_cmd()
         // Spintop vs Follow Gimbal
         if (g_robot_state.spintop_mode)
     {
-        g_chassis.target_yaw_speed = g_chassis.target_yaw_speed * 0.9f + 0.1f * 5.0f;
+        g_chassis.target_yaw_speed = g_chassis.target_yaw_speed * 0.9f + 0.1f * 6.0f;
     }
     else
     {
@@ -439,7 +463,11 @@ void Chassis_Ctrl_Loop()
     _leg_length_controller(g_robot_state.chassis_height);
     _lqr_balancce_controller();
     _vmc_torq_calc();
-    if (g_robot_state.enabled) // add wheel offline detection
+    if (last_spintop_mode == 1 && g_robot_state.spintop_mode == 0)
+    {
+        _target_state_reset();
+    }
+    if ((g_robot_state.enabled) && (!g_chassis.chassis_killed_by_referee)) // add wheel offline detection
     {
         _hip_motor_torq_ctrl(-g_leg_left.torq4, -g_leg_left.torq1, -g_leg_right.torq4, -g_leg_right.torq1);
         _foot_motor_torq_ctrl(-g_u_left.T_A, g_u_right.T_A);

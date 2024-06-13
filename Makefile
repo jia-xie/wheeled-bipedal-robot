@@ -159,7 +159,9 @@ src/ui/src/ui_indicator_0_7.c \
 src/ui/src/ui_indicator_0_8.c \
 src/ui/src/ui_indicator_0_9.c \
 src/ui/src/ui_indicator_0_10.c \
-src/ui/src/ui_indicator_1_0.c 
+src/ui/src/ui_indicator_0_11.c \
+src/ui/src/ui_indicator_1_0.c \
+src/ui/src/ui_indicator_1_1.c 
 
 # ASM sources
 ASM_SOURCES =  \

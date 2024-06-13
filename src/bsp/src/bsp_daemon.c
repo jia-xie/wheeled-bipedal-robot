@@ -1,7 +1,7 @@
 #include "bsp_daemon.h"
 #include <stdlib.h>
 
-#define DAEMON_INSTANCE_MAX (3)
+#define DAEMON_INSTANCE_MAX (5)
 Daemon_Instance_t *g_daemon_instances[DAEMON_INSTANCE_MAX];
 uint8_t g_daemon_instance_count = 0;
 

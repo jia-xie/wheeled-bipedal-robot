@@ -34,6 +34,8 @@ void Referee_Set_Robot_State(void)
         Referee_Robot_State.Shooter_Heat_2 = Referee_System.Power_Heat.Shooter_2_17mm_Heat;
         Referee_Robot_State.Shooting_Frequency = Referee_System.Shooter.Frequency;
         Referee_Robot_State.Shooting_Speed = Referee_System.Shooter.Speed;
+
+        Referee_Robot_State.Chassis_Power_Is_On = Referee_System.Robot_State.Chassis_Power_Output;
     }
     else
     {
