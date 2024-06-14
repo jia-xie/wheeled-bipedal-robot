@@ -92,6 +92,10 @@ void Feed_Angle_Calc()
 {
         if (Referee_System.Online_Flag)
         {
+            if (Referee_System.Robot_State.Shooter_Power_Output == 0)
+            {
+                g_launch_target.feed_angle = g_motor_feed->stats->total_angle_rad;
+            } 
             if (g_launch_target.heat_count*2 % 100 == 0)
             {
                 g_launch_target.calculated_heat -= Referee_Robot_State.Cooling_Rate/10;
@@ -106,28 +110,10 @@ void Feed_Angle_Calc()
                     {
                         g_launch_target.calculated_heat += 10;
                         g_launch_target.feed_angle += FEED_1_PROJECTILE_ANGLE;
-                        
                     }
                 }
                 DJI_Motor_Set_Control_Mode(g_motor_feed, POSITION_CONTROL_TOTAL_ANGLE);
                         DJI_Motor_Set_Angle(g_motor_feed,g_launch_target.feed_angle);
             }   
-        }
-        if (g_launch_target.single_launch_flag && !g_launch_target.single_launch_finished_flag) {
-            g_launch_target.feed_angle = DJI_Motor_Get_Total_Angle(g_motor_feed) + FEED_1_PROJECTILE_ANGLE;
-            g_launch_target.single_launch_finished_flag = 1;
-        }
-        else if (g_launch_target.single_launch_flag && g_launch_target.single_launch_finished_flag) {
-            DJI_Motor_Set_Control_Mode(g_motor_feed, POSITION_CONTROL_TOTAL_ANGLE);
-            DJI_Motor_Set_Angle(g_motor_feed,g_launch_target.feed_angle);
-        }
-        else if (g_launch_target.burst_launch_flag) {
-            g_launch_target.feed_velocity = FEED_FREQUENCY_12;
-            DJI_Motor_Set_Control_Mode(g_motor_feed, VELOCITY_CONTROL);
-            DJI_Motor_Set_Velocity(g_motor_feed,g_launch_target.feed_velocity);
-        }
-        else {
-            DJI_Motor_Set_Control_Mode(g_motor_feed, VELOCITY_CONTROL);
-            DJI_Motor_Set_Velocity(g_motor_feed,0);
         }
 }
