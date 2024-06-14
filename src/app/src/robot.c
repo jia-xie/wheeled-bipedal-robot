@@ -60,7 +60,7 @@ void Robot_Init()
     Launch_Task_Init();
     Remote_Init(&huart3);
     Referee_System_Init(&huart1);
-    //Jetson_Orin_Init(&huart6);
+    Jetson_Orin_Init(&huart6);
 #else
     Melody_t system_init_melody = {
         .notes = SYSTEM_READY,
@@ -134,6 +134,11 @@ void Robot_Cmd_Loop()
             g_robot_state.chassis_y_speed = g_robot_state.vy;
             g_robot_state.chassis_x_speed = g_robot_state.vx;
 
+            if (fabs(g_robot_state.chassis_y_speed) > 0.05f || fabs(g_robot_state.chassis_x_speed) > 0.05f)
+            {
+                g_robot_state.spintop_mode = 0;
+                g_current_height_index = 1;
+            }
             // Wheel Facing Mode
             if (fabs(g_robot_state.chassis_y_speed) < 0.05f && fabs(g_robot_state.chassis_x_speed) > 0.08f)
             {
@@ -175,8 +180,8 @@ void Robot_Cmd_Loop()
             {
                 if (g_orin_data.receiving.auto_aiming.yaw != 0 || g_orin_data.receiving.auto_aiming.pitch != 0)
                 {
-                    g_robot_state.gimbal_yaw_angle = (1 - 0.2f) * g_robot_state.gimbal_yaw_angle + (0.2f) * (g_imu.rad.yaw - g_orin_data.receiving.auto_aiming.yaw / 180.0f * PI); // + orin
-                    g_robot_state.gimbal_pitch_angle = (1 - 0.2f) * g_robot_state.gimbal_pitch_angle + (0.2f) * (g_imu.rad.pitch - g_orin_data.receiving.auto_aiming.pitch / 180.0f * PI); // + orin
+                    g_robot_state.gimbal_yaw_angle = (1 - 0.2f) * g_robot_state.gimbal_yaw_angle + (0.2f) * (g_imu.rad.yaw + g_orin_data.receiving.auto_aiming.yaw / 180.0f * PI); // + orin
+                    g_robot_state.gimbal_pitch_angle = (1 - 0.2f) * g_robot_state.gimbal_pitch_angle + (0.2f) * (g_imu.rad.pitch + g_orin_data.receiving.auto_aiming.pitch / 180.0f * PI); // + orin
                 }
             }
             else if (g_remote.controller.right_switch == MID)
