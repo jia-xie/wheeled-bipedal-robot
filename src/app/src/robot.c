@@ -148,6 +148,10 @@ void Robot_Cmd_Loop()
             {
                 g_robot_state.wheel_facing_mode = 0;
             }
+            if (g_remote.mouse.left == 1 && fabs(g_robot_state.chassis_y_speed) < 0.3f)
+            {
+                g_robot_state.wheel_facing_mode = 1;
+            }
             if (g_remote.controller.left_switch == DOWN)
             {
                 if (g_key_prev.prev_left_switch != DOWN)
