@@ -441,9 +441,13 @@ void _chassis_cmd()
     // g_chassis.angle_diff = g_chassis.angle_diff * 0.99f + 0.01f * ideal_angle_diff;
     g_chassis.angle_diff = ideal_angle_diff;
         // Spintop vs Follow Gimbal
-        if (g_robot_state.spintop_mode)
+    if (g_robot_state.spintop_mode)
     {
         g_chassis.target_yaw_speed = g_chassis.target_yaw_speed * 0.9f + 0.1f * 6.0f;
+    }
+    else if (g_robot_state.gimbal_switching_dir_pending == 1)
+    {
+        g_chassis.target_yaw_speed = 0 * 0.1f + 0.9f * g_chassis.target_yaw_speed;
     }
     else
     {

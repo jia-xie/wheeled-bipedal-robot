@@ -25,10 +25,10 @@ extern DJI_Motor_Handle_t *g_yaw;
 #define KEYBOARD_RAMP_COEF (0.005f)
 #define SPINTOP_COEF (0.003f)
 #define CONTROLLER_RAMP_COEF (0.8f)
-#define MAX_SPEED (1.6f)
+#define MAX_SPEED (1.2f)
 
 Robot_State_t g_robot_state = {0, 0};
-float g_chassis_height_arr[4] = {0.10f, 0.13f, 0.20f, 0.35f};
+float g_chassis_height_arr[2] = {0.13f, 0.35f};
 int8_t g_current_height_index = 0;
 Key_Prev_t g_key_prev = {0};
 extern Launch_Target_t g_launch_target;
@@ -100,7 +100,7 @@ void Robot_Cmd_Loop()
             g_robot_state.enabled = 0;
             g_launch_target.flywheel_enabled = 0;
             g_robot_state.gimbal_yaw_angle = g_imu.rad.yaw;
-            g_current_height_index = 1;
+            g_current_height_index = 0;
         }
         else
         {
@@ -111,7 +111,7 @@ void Robot_Cmd_Loop()
             {
                 g_robot_state.chassis_move_speed_ratio = 1.5f;
             }
-            else if (g_remote.keyboard.Ctrl == 1)
+            else if ((g_remote.keyboard.Ctrl == 1) || (g_robot_state.chassis_height > 0.23f))
             {
                 g_robot_state.chassis_move_speed_ratio = 0.5f;
             }
@@ -137,7 +137,7 @@ void Robot_Cmd_Loop()
             if (fabs(g_robot_state.chassis_y_speed) > 0.05f || fabs(g_robot_state.chassis_x_speed) > 0.05f)
             {
                 g_robot_state.spintop_mode = 0;
-                g_current_height_index = 1;
+                // g_current_height_index = 0;
             }
             // Wheel Facing Mode
             if (fabs(g_robot_state.chassis_y_speed) < 0.05f && fabs(g_robot_state.chassis_x_speed) > 0.08f)
@@ -176,24 +176,48 @@ void Robot_Cmd_Loop()
             }
             g_key_prev.prev_left_switch = g_remote.controller.left_switch;
 
-            g_robot_state.chassis_height = g_chassis_height_arr[g_current_height_index];
             /* Chassis ends here */
 
             /* Gimbal starts here */
             if ((g_remote.controller.right_switch == UP) || (g_remote.mouse.right == 1)) // mouse right button auto aim
             {
+                #ifdef ORIN
                 if (g_orin_data.receiving.auto_aiming.yaw != 0 || g_orin_data.receiving.auto_aiming.pitch != 0)
                 {
                     g_robot_state.gimbal_yaw_angle = (1 - 0.2f) * g_robot_state.gimbal_yaw_angle + (0.2f) * (g_imu.rad.yaw + g_orin_data.receiving.auto_aiming.yaw / 180.0f * PI); // + orin
                     g_robot_state.gimbal_pitch_angle = (1 - 0.2f) * g_robot_state.gimbal_pitch_angle + (0.2f) * (g_imu.rad.pitch + g_orin_data.receiving.auto_aiming.pitch / 180.0f * PI); // + orin
                 }
+                #endif
+            }
+            if ((g_remote.controller.right_switch == UP))
+            {
+                g_robot_state.chassis_height = g_robot_state.chassis_height * 0.995f + 0.005f * 0.30f;
             }
             else if (g_remote.controller.right_switch == MID)
             {
-                float yaw_increment = (g_remote.controller.right_stick.x / 50000.0f + g_remote.mouse.x / 50000.0f);
-                yaw_increment = fabs(yaw_increment) > MAX_YAW_INCREMENT ? (fabs(yaw_increment) / (yaw_increment)) * MAX_YAW_INCREMENT : yaw_increment;
+                float yaw_increment;
+                if (g_remote.keyboard.Q == 1 && g_key_prev.prev_Q == 0 && fabs(g_robot_state.chassis_y_speed) < 0.4f)
+                {
+                    yaw_increment = PI;
+                    g_robot_state.gimbal_switching_dir_pending = 1;
+                }
+                else if (g_remote.keyboard.E == 1 && g_key_prev.prev_E == 0 && fabs(g_robot_state.chassis_y_speed) < 0.4f)
+                {
+                    yaw_increment = -PI;
+                    g_robot_state.gimbal_switching_dir_pending = 1;
+                }
+                else {
+                    yaw_increment = (g_remote.controller.right_stick.x / 50000.0f + g_remote.mouse.x / 50000.0f);
+                    yaw_increment = fabs(yaw_increment) > MAX_YAW_INCREMENT ? (fabs(yaw_increment) / (yaw_increment)) * MAX_YAW_INCREMENT : yaw_increment;
+                
+                }
                 g_robot_state.gimbal_yaw_angle -= yaw_increment;    // controller and mouse
                 g_robot_state.gimbal_pitch_angle -= (g_remote.controller.right_stick.y / 100000.0f - g_remote.mouse.y / 50000.0f); // controller and mouse
+            }
+
+            if (fabs(fmod(g_robot_state.gimbal_yaw_angle - g_imu.rad_fusion.yaw, 2 * PI)) < 0.08f)
+            {
+                g_robot_state.gimbal_switching_dir_pending = 0;
             }
             /* Gimbal ends here */
 
@@ -233,27 +257,31 @@ void Robot_Cmd_Loop()
             if (g_remote.keyboard.G == 1 && g_key_prev.prev_G == 0)
             {
                 _toggle_robot_state(&g_robot_state.spintop_mode);
-            }
+            } 
             if (g_remote.keyboard.V == 1 && g_key_prev.prev_V == 0)
             {
                 _toggle_robot_state(&g_robot_state.UI_enabled);
             }
-            if (g_remote.keyboard.F == 1 && g_key_prev.prev_F == 0)
+            // if (g_remote.keyboard.F == 1)
+            // {
+            //     g_robot_state.chassis_height = g_robot_state.chassis_height * 0.995f + 0.05f * 0.30f;
+            // }
+            // if (g_remote.keyboard.C == 1)
+            // {   
+            //     g_robot_state.chassis_height = g_robot_state.chassis_height * 0.995f + 0.05f * 0.13f;
+            // }
+            if (g_remote.controller.right_switch == MID && g_key_prev.prev_right_switch == UP)
             {
-                g_current_height_index++;
-                __MAX_LIMIT(g_current_height_index, 0, 3);
+                g_robot_state.chassis_height = 0.13f;
             }
-            if (g_remote.keyboard.C == 1 && g_key_prev.prev_C == 0)
-            {   
-                g_current_height_index--;
-                __MAX_LIMIT(g_current_height_index, 0, 3);
-            }
-
             g_key_prev.prev_B = g_remote.keyboard.B;
             g_key_prev.prev_G = g_remote.keyboard.G;
             g_key_prev.prev_V = g_remote.keyboard.V;
             g_key_prev.prev_F = g_remote.keyboard.F;
             g_key_prev.prev_C = g_remote.keyboard.C;
+            g_key_prev.prev_Q = g_remote.keyboard.Q;
+            g_key_prev.prev_E = g_remote.keyboard.E;
+            g_key_prev.prev_right_switch = g_remote.controller.right_switch;
             /* Keyboard Toggles Start Here */
 
             /* AutoAiming Flag, not used only for debug */
