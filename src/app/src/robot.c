@@ -175,7 +175,12 @@ void Robot_Cmd_Loop()
                 g_launch_target.flywheel_enabled = 1;
             }
             g_key_prev.prev_left_switch = g_remote.controller.left_switch;
+
+            // this does not interfere with remote control
+            if (g_remote.controller.right_switch != UP)
+            {
             g_robot_state.chassis_height = g_robot_state.chassis_height * 0.99f + 0.01f * g_chassis_height_arr[g_current_height_index];
+            }
             /* Chassis ends here */
 
             /* Gimbal starts here */
@@ -191,7 +196,7 @@ void Robot_Cmd_Loop()
             }
             if ((g_remote.controller.right_switch == UP))
             {
-                g_robot_state.chassis_height = g_robot_state.chassis_height * 0.995f + 0.005f * 0.30f;
+                g_robot_state.chassis_height = g_robot_state.chassis_height * 0.99f + 0.01f * 0.35f;
             }
             else if (g_remote.controller.right_switch == MID)
             {

@@ -21,12 +21,12 @@ void _ui_init_indicator_0_9() {
     ui_indicator_0_9.option.figure_tpye = 7;
     ui_indicator_0_9.option.layer = 0;
     ui_indicator_0_9.option.font_size = 30;
-    ui_indicator_0_9.option.start_x = 980;
+    ui_indicator_0_9.option.start_x = 1080;
     ui_indicator_0_9.option.start_y = 300;
     ui_indicator_0_9.option.color = 6;
     ui_indicator_0_9.option.str_length = 1;
     ui_indicator_0_9.option.width = 3;
-    strcpy(ui_indicator_0_Supercap_Percent->string, "%");
+    strcpy(ui_indicator_0_Supercap_Percent->string, "Ammo");
 
     ui_proc_string_frame(&ui_indicator_0_9);
     SEND_MESSAGE((uint8_t *) &ui_indicator_0_9, sizeof(ui_indicator_0_9));

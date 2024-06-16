@@ -49,12 +49,21 @@ void UI_Task_Loop(void)
             ui_indicator_1_Aim_H_Line->color = 3;
             ui_indicator_1_Aim_V_Line->color = 3;
         }
-        if (ui_indicator_1_Supercap->number>=99)
+        // if (ui_indicator_1_Supercap->number>=99)
+        // {
+        //     ui_indicator_1_Supercap->number = 0;
+        // }
+        // ui_indicator_1_Supercap->number++;
+        ui_indicator_1_Supercap->number = Referee_Robot_State.Projectie_Remaining;
+
+        if (Referee_Robot_State.Projectie_Remaining <= 10)
         {
-            ui_indicator_1_Supercap->number = 0;
+            ui_indicator_1_Supercap->color = 4;
         }
-        ui_indicator_1_Supercap->number++;
-        
+        else
+        {
+            ui_indicator_1_Supercap->color = 6;
+        }
         // Angle Difference
         float chassis_orientation = -DJI_Motor_Get_Absolute_Angle(g_yaw);
 		ui_indicator_1_Orientation_Line->start_x = 1700.0f + sinf(chassis_orientation)*140.0f;

@@ -73,7 +73,7 @@ void Launch_Task_Init() {
 void Launch_Ctrl_Loop() {
     if (g_robot_state.enabled) {
         if (g_launch_target.flywheel_enabled) {
-            g_launch_target.flywheel_velocity = FLYWHEEL_VELOCITY_LOW_FOR_DEBUG;
+            g_launch_target.flywheel_velocity = FLYWHEEL_VELOCITY_30;
             DJI_Motor_Set_Velocity(g_flywheel_left,g_launch_target.flywheel_velocity);
             DJI_Motor_Set_Velocity(g_flywheel_right,g_launch_target.flywheel_velocity);
             Feed_Angle_Calc();
@@ -96,9 +96,12 @@ void Feed_Angle_Calc()
     g_launch_target.launch_freq_count++;
         if (Referee_System.Online_Flag)
         {
+            if (g_remote.mouse.right == 1)
+            {
+                g_launch_target.calculated_heat = Referee_Robot_State.Shooter_Heat_1;
+            }
             if ((Referee_System.Robot_State.Shooter_Power_Output == 0) \
-                && fabs(g_remote.controller.wheel) < 50.0f \
-                && fabs(g_remote.mouse.left == 0))
+                || !g_launch_target.burst_launch_flag)
             {
                 g_launch_target.feed_angle = g_motor_feed->stats->total_angle_rad;
             } 

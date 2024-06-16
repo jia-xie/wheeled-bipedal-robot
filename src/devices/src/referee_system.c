@@ -36,6 +36,7 @@ void Referee_Set_Robot_State(void)
         Referee_Robot_State.Shooting_Speed = Referee_System.Shooter.Speed;
 
         Referee_Robot_State.Chassis_Power_Is_On = Referee_System.Robot_State.Chassis_Power_Output;
+        Referee_Robot_State.Projectie_Remaining = Referee_System.Remaining_Ammo.Type_17mm;
     }
     else
     {
