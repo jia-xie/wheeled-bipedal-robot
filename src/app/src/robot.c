@@ -28,7 +28,7 @@ extern DJI_Motor_Handle_t *g_yaw;
 #define MAX_SPEED (1.2f)
 
 Robot_State_t g_robot_state = {0, 0};
-float g_chassis_height_arr[2] = {0.13f, 0.35f};
+float g_chassis_height_arr[4] = {0.13f, 0.20f, 0.28f, 0.35f};
 int8_t g_current_height_index = 0;
 Key_Prev_t g_key_prev = {0};
 extern Launch_Target_t g_launch_target;
@@ -175,7 +175,7 @@ void Robot_Cmd_Loop()
                 g_launch_target.flywheel_enabled = 1;
             }
             g_key_prev.prev_left_switch = g_remote.controller.left_switch;
-
+            g_robot_state.chassis_height = g_robot_state.chassis_height * 0.99f + 0.01f * g_chassis_height_arr[g_current_height_index];
             /* Chassis ends here */
 
             /* Gimbal starts here */
@@ -263,14 +263,18 @@ void Robot_Cmd_Loop()
             {
                 _toggle_robot_state(&g_robot_state.UI_enabled);
             }
-            // if (g_remote.keyboard.F == 1)
-            // {
-            //     g_robot_state.chassis_height = g_robot_state.chassis_height * 0.995f + 0.05f * 0.30f;
-            // }
-            // if (g_remote.keyboard.C == 1)
-            // {   
-            //     g_robot_state.chassis_height = g_robot_state.chassis_height * 0.995f + 0.05f * 0.13f;
-            // }
+            if (g_remote.keyboard.F == 1 && g_key_prev.prev_F == 0)
+            {
+                // g_robot_state.chassis_height = g_robot_state.chassis_height * 0.995f + 0.05f * 0.30f;
+                g_current_height_index++;
+                __MAX_LIMIT(g_current_height_index, 0, 3);
+            }
+            if (g_remote.keyboard.C == 1 && g_key_prev.prev_C == 0)
+            {   
+                // g_robot_state.chassis_height = g_robot_state.chassis_height * 0.995f + 0.05f * 0.13f;
+                g_current_height_index--;
+                __MAX_LIMIT(g_current_height_index, 0, 3);
+            }
             if (g_remote.controller.right_switch == MID && g_key_prev.prev_right_switch == UP)
             {
                 g_robot_state.chassis_height = 0.13f;
