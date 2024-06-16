@@ -198,12 +198,13 @@ void Robot_Cmd_Loop()
                 float yaw_increment;
                 if (g_remote.keyboard.Q == 1 && g_key_prev.prev_Q == 0 && fabs(g_robot_state.chassis_y_speed) < 0.4f)
                 {
-                    yaw_increment = PI;
+                    // -0.2 is to ensure q and e is turning it its desire direction, or angle wrapping will find the cloest way.
+                    yaw_increment = -PI + 0.2f;
                     g_robot_state.gimbal_switching_dir_pending = 1;
                 }
                 else if (g_remote.keyboard.E == 1 && g_key_prev.prev_E == 0 && fabs(g_robot_state.chassis_y_speed) < 0.4f)
                 {
-                    yaw_increment = -PI;
+                    yaw_increment = PI - 0.2f;
                     g_robot_state.gimbal_switching_dir_pending = 1;
                 }
                 else {
@@ -215,7 +216,7 @@ void Robot_Cmd_Loop()
                 g_robot_state.gimbal_pitch_angle -= (g_remote.controller.right_stick.y / 100000.0f - g_remote.mouse.y / 50000.0f); // controller and mouse
             }
 
-            if (fabs(fmod(g_robot_state.gimbal_yaw_angle - g_imu.rad_fusion.yaw, 2 * PI)) < 0.08f)
+            if (fabs(fmod(g_robot_state.gimbal_yaw_angle - g_imu.rad_fusion.yaw, 2 * PI)) < 0.03f)
             {
                 g_robot_state.gimbal_switching_dir_pending = 0;
             }
