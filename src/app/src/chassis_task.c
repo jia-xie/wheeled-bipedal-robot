@@ -419,11 +419,11 @@ void _chassis_cmd()
             forward_angle_diff += 2 * PI;
         }
         float backward_angle_diff = fmod(ideal_angle_diff + PI / 2, 2 * PI);
-        if (backward_angle_diff > PI)
+        while (backward_angle_diff > PI)
         {
             backward_angle_diff -= 2 * PI;
         }
-        else if (backward_angle_diff < -PI)
+        while (backward_angle_diff < -PI)
         {
             backward_angle_diff += 2 * PI;
         }

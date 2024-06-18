@@ -240,7 +240,7 @@ typedef struct
 	
 	struct __attribute__ ((__packed__))
 	{
-		uint16_t Type_17mm;
+		int16_t Type_17mm;
 		uint16_t Type_42mm;
 		uint16_t Type_Gold;
 	}Remaining_Ammo;

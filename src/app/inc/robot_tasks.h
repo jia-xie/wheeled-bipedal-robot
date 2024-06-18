@@ -43,7 +43,7 @@ void Robot_Tasks_Start()
     osThreadDef(motor_task, Robot_Tasks_Motor, osPriorityNormal, 0, 256);
     motor_task_handle = osThreadCreate(osThread(motor_task), NULL);
 
-    osThreadDef(robot_control_task, Robot_Tasks_Robot_Control, osPriorityAboveNormal, 0, 2048);
+    osThreadDef(robot_control_task, Robot_Tasks_Robot_Control, osPriorityHigh, 0, 2048);
     robot_control_task_handle = osThreadCreate(osThread(robot_control_task), NULL);
 
     osThreadDef(ui_task, Robot_Tasks_UI, osPriorityAboveNormal, 0, 256);
