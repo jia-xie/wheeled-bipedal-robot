@@ -72,7 +72,7 @@ void Launch_Task_Init() {
 void Launch_Ctrl_Loop() {
     if (g_robot_state.enabled) {
         if (g_launch_target.flywheel_enabled) {
-            g_launch_target.flywheel_velocity = FLYWHEEL_VELOCITY_LOW_FOR_DEBUG;
+            g_launch_target.flywheel_velocity = FLYWHEEL_VELOCITY_30;
             DJI_Motor_Set_Velocity(g_flywheel_left,g_launch_target.flywheel_velocity);
             DJI_Motor_Set_Velocity(g_flywheel_right,g_launch_target.flywheel_velocity);
             Feed_Angle_Calc();
