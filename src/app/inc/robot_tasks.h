@@ -13,6 +13,7 @@
 #include "bsp_serial.h"
 #include "bsp_daemon.h"
 #include "ui_task.h"
+#include "board_comm_task.h"
 
 extern void IMU_Task(void const *pvParameters);
 
@@ -23,6 +24,7 @@ osThreadId ui_task_handle;
 osThreadId debug_task_handle;
 osThreadId jetson_orin_task_handle;
 osThreadId daemon_task_handle;
+osThreadId board_comm_task_handle;
 
 void Robot_Tasks_Robot_Control(void const *argument);
 void Robot_Tasks_Motor(void const *argument);
@@ -31,22 +33,23 @@ void Robot_Tasks_UI(void const *argument);
 void Robot_Tasks_Debug(void const *argument);
 void Robot_Tasks_Jetson_Orin(void const *argument);
 void Robot_Tasks_Daemon(void const *argument);
+void Robot_Tasks_Board_Comm(void const *argument);
 
 void Robot_Tasks_Start()
 {
-    osThreadDef(imu_task, Robot_Tasks_IMU, osPriorityAboveNormal, 0, 1024);
+    osThreadDef(imu_task, Robot_Tasks_IMU, osPriorityAboveNormal, 0, 256);
     imu_task_handle = osThreadCreate(osThread(imu_task), NULL);
 
-    osThreadDef(motor_task, Robot_Tasks_Motor, osPriorityAboveNormal, 0, 256);
+    osThreadDef(motor_task, Robot_Tasks_Motor, osPriorityNormal, 0, 256);
     motor_task_handle = osThreadCreate(osThread(motor_task), NULL);
 
-    osThreadDef(robot_control_task, Robot_Tasks_Robot_Control, osPriorityAboveNormal, 0, 256);
+    osThreadDef(robot_control_task, Robot_Tasks_Robot_Control, osPriorityHigh, 0, 2048);
     robot_control_task_handle = osThreadCreate(osThread(robot_control_task), NULL);
 
     osThreadDef(ui_task, Robot_Tasks_UI, osPriorityAboveNormal, 0, 256);
     ui_task_handle = osThreadCreate(osThread(ui_task), NULL);
 
-    osThreadDef(debug_task, Robot_Tasks_Debug, osPriorityIdle, 0, 256);
+    osThreadDef(debug_task, Robot_Tasks_Debug, osPriorityNormal, 0, 256);
     debug_task_handle = osThreadCreate(osThread(debug_task), NULL);
 
     osThreadDef(jetson_orin_task, Robot_Tasks_Jetson_Orin, osPriorityAboveNormal, 0, 256);
@@ -54,6 +57,9 @@ void Robot_Tasks_Start()
 
     osThreadDef(daemon_task, Robot_Tasks_Daemon, osPriorityAboveNormal, 0, 256);
     daemon_task_handle = osThreadCreate(osThread(daemon_task), NULL);
+
+    osThreadDef(board_comm_task, Robot_Tasks_Board_Comm, osPriorityAboveNormal, 0, 256);
+    board_comm_task_handle = osThreadCreate(osThread(board_comm_task), NULL);
 }
 
 void Robot_Tasks_Robot_Control(void const *argument)
@@ -75,13 +81,13 @@ __weak void Robot_Tasks_IMU(void const *argument)
 
 void Robot_Tasks_Motor(void const *argument)
 {
-    portTickType xLastWakeTime;
-    xLastWakeTime = xTaskGetTickCount();
-    const TickType_t TimeIncrement = pdMS_TO_TICKS(1);
+    // portTickType xLastWakeTime;
+    // xLastWakeTime = xTaskGetTickCount();
+    //const TickType_t TimeIncrement = pdMS_TO_TICKS(1);
     while (1)
     {
         Motor_Task_Loop();
-        vTaskDelayUntil(&xLastWakeTime, TimeIncrement);
+        //vTaskDelayUntil(&xLastWakeTime, TimeIncrement);
     }
 }
 
@@ -116,7 +122,7 @@ void Robot_Tasks_Jetson_Orin(void const *argument)
     const TickType_t TimeIncrement = pdMS_TO_TICKS(JETSON_ORIN_PERIOD);
     while (1)
     {
-        //Jetson_Orin_Send_Data();
+        Jetson_Orin_Send_Data();
         vTaskDelayUntil(&xLastWakeTime, TimeIncrement);
     }
 }
@@ -129,6 +135,18 @@ void Robot_Tasks_Daemon(void const *argument)
     while (1)
     {
         Daemon_Task_Loop();
+        vTaskDelayUntil(&xLastWakeTime, TimeIncrement);
+    }
+}
+
+void Robot_Tasks_Board_Comm(void const *argument)
+{
+    portTickType xLastWakeTime;
+    xLastWakeTime = xTaskGetTickCount();
+    const TickType_t TimeIncrement = pdMS_TO_TICKS(1);
+    while (1)
+    {
+        Board_Comm_Task_Loop();
         vTaskDelayUntil(&xLastWakeTime, TimeIncrement);
     }
 }

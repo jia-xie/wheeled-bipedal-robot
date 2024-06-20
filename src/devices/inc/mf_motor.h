@@ -5,6 +5,11 @@
 
 #define SINGLE_MOTOR_CTRL_STD 0x140
 
+#define MG8016_TORQ_CONSTANT (2.9f)
+#define MF9025_TORQ_CONSTANT (.32f)
+#define MF9025_HALF_MAX_TICKS (MF9025_MAX_TICKS/2)
+#define MF9025_MAX_TICKS (65536.0f)
+
 typedef struct MF_MOTOR_INFO
 {
     uint8_t enabled;
@@ -12,6 +17,10 @@ typedef struct MF_MOTOR_INFO
     int16_t velocity;
     int16_t current;
     int8_t temp;
+    #pragma message "overflow warning"
+    uint16_t last_angle;
+    float total_angle;
+    int16_t total_turn;;
 
     uint16_t kp_ang;
     uint16_t ki_ang;
@@ -51,7 +60,7 @@ typedef struct _MF_Motor
     float target_pos;
     float target_vel;
     float target_torq;
-
+    float angle_offset; // this is for wheel leg foot motor, ignore if other motors are in use
     /* Motor Stats */
     MF_Motor_Stats_t *stats;
 } MF_Motor_Handle_t;
@@ -127,4 +136,8 @@ void MF_Motor_PositionCtrl(MF_Motor_Handle_t *motor, int32_t pos);
  * @brief Global function to send the motor control data.
 */
 void MF_Motor_Send(void);
+
+void MF_Motor_Broadcast_Init(uint8_t can_bus);
+
+void MF_Motor_Broadcast_Torq_Ctrl(uint8_t can_bus, int16_t torq1, int16_t torq2, int16_t torq3, int16_t torq4);
 #endif

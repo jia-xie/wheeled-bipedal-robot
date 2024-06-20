@@ -51,7 +51,7 @@ typedef struct BMI088_Raw
     uint8_t status;
     float accel[3];
     float temp;
-    float gyro[3];
+    float gyro[3]; // roll pitch yaw
     float time;
 } BMI088_Raw_t;
 

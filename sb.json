@@ -1,0 +1,421 @@
+{
+   "widgets": [
+      {
+         "type": "single_value_number",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "TA_l",
+               "sourceNames": [
+                  "TA_l"
+               ],
+               "formula": "",
+               "options": {
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            }
+         ],
+         "precision_mode": 0
+      },
+      {
+         "type": "single_value_number",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "TB_l",
+               "sourceNames": [
+                  "TB_l"
+               ],
+               "formula": "",
+               "options": {
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            }
+         ],
+         "precision_mode": 0
+      },
+      {
+         "type": "single_value_number",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "TA_r",
+               "sourceNames": [
+                  "TA_r"
+               ],
+               "formula": "",
+               "options": {
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            }
+         ],
+         "precision_mode": 0
+      },
+      {
+         "type": "single_value_number",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "TB_r",
+               "sourceNames": [
+                  "TB_r"
+               ],
+               "formula": "",
+               "options": {
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            }
+         ],
+         "precision_mode": 0
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "TB_l",
+               "sourceNames": [
+                  "TB_l"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "TB_l",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "TB_r",
+               "sourceNames": [
+                  "TB_r"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "TB_r",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "TA_l",
+               "sourceNames": [
+                  "TA_l"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "TA_l",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "TA_r",
+               "sourceNames": [
+                  "TA_r"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "TA_r",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "x_l",
+               "sourceNames": [
+                  "x_l"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "x_l",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "x_r",
+               "sourceNames": [
+                  "x_r"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "x_r",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "x_dot_l",
+               "sourceNames": [
+                  "x_dot_l"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "x_dot_l",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "x_dot_r",
+               "sourceNames": [
+                  "x_dot_r"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "x_dot_r",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "theta_l",
+               "sourceNames": [
+                  "theta_l"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "theta_l",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "theta_r",
+               "sourceNames": [
+                  "theta_r"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "theta_r",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "theta_dot_l",
+               "sourceNames": [
+                  "theta_dot_l"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "theta_dot_l",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "theta_dot_r",
+               "sourceNames": [
+                  "theta_dot_r"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "theta_dot_r",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "phi_l",
+               "sourceNames": [
+                  "phi_l"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "phi_l",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "phi_r",
+               "sourceNames": [
+                  "phi_r"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "phi_r",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "phi_dot_l",
+               "sourceNames": [
+                  "phi_dot_l"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "phi_dot_l",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            },
+            {
+               "name": "phi_dot_r",
+               "sourceNames": [
+                  "phi_dot_r"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "phi_dot_r",
+                  "stroke": "rgba(52,152,219,1)",
+                  "fill": "rgba(52,152,219,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      },
+      {
+         "type": "chart",
+         "gridPos": {
+            "h": 6,
+            "w": 6,
+            "x": 0,
+            "y": 0
+         },
+         "series": [
+            {
+               "name": "x_dot>TA_l",
+               "sourceNames": [
+                  "x_dot>TA_l"
+               ],
+               "formula": "",
+               "options": {
+                  "_serie": "x_dot>TA_l",
+                  "stroke": "rgba(231,76,60,1)",
+                  "fill": "rgba(231,76,60,0.1)"
+               },
+               "type": "number"
+            }
+         ]
+      }
+   ],
+   "viewDuration": "60"
+}

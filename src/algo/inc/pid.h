@@ -20,7 +20,8 @@ typedef struct pid_t
     float output;
 } PID_t;
 
-extern void PID_Init(PID_t *pid, float kp, float ki, float kd, float output_limit, float integral_limit, float dead_zone);
-extern void PID_Reset(PID_t *pid);
-extern float PID(PID_t *pid, float error);
+void PID_Init(PID_t *pid, float kp, float ki, float kd, float output_limit, float integral_limit, float dead_zone);
+void PID_Reset(PID_t *pid);
+float PID(PID_t *pid, float error);
+float PID_dt(PID_t *pid, float error, float dt);
 #endif

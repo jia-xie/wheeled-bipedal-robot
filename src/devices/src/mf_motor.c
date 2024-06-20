@@ -1,12 +1,22 @@
 #include "mf_motor.h"
 #include "bsp_can.h"
 #include "user_math.h"
+#pragma message "this shouldn't be here (bsp_daemon)"
+#include "bsp_daemon.h"
+extern Daemon_Instance_t *g_daemon_chassis_power_guard;
 #include <stdlib.h>
-
+#include "chassis_task.h"
+#pragma message "online check should be updated so that it's not a direct reference"
+extern Chassis_t g_chassis;
 #pragma message "Check Max Device Number"
-#define MF_MAX_DEVICE (2)
-MF_Motor_Handle_t *g_mf_motors[MF_MAX_DEVICE] = {NULL};
+#define MF_MAX_DEVICE (6)
+MF_Motor_Handle_t *g_mf_motors[6] = {NULL};
 uint8_t g_mf_motor_num = 0;
+CAN_Instance_t *g_mf_broadcast_can_instance[2] = {NULL};
+uint8_t g_mf_broadcast_can_instance_num = 0;
+uint8_t can1_broadcast_sending_flag = 0;
+uint8_t can2_broadcast_sending_flag = 0;
+
 
 void MF_Motor_Decode(CAN_Instance_t *can_instance);
 
@@ -25,6 +35,9 @@ MF_Motor_Handle_t *MF_Motor_Init(MF_Motor_Config_t config)
     motor->target_torq = 0;
     motor->stats->enabled = 0;
     motor->stats->angle = 0;
+    motor->stats->last_angle = 0;
+    motor->stats->total_angle = 0;
+    motor->stats->total_turn = 0;
     motor->stats->velocity = 0;
     motor->stats->current = 0;
     motor->stats->temp = 0;
@@ -39,8 +52,56 @@ MF_Motor_Handle_t *MF_Motor_Init(MF_Motor_Config_t config)
     return motor;
 }
 
+void MF_Motor_Broadcast_Init(uint8_t can_bus)
+{
+    if (can_bus != 1 && can_bus != 2)
+    {
+        return;
+        // log error
+    }
+    // rx_id is a placeholder, it doesn't matter
+    CAN_Instance_t *can_instance = CAN_Device_Register(can_bus, 0x280, 0x280, MF_Motor_Decode);
+    g_mf_broadcast_can_instance[can_bus - 1] = can_instance;
+}
+
+void MF_Motor_Broadcast_Torq_Ctrl(uint8_t can_bus, int16_t torq1, int16_t torq2, int16_t torq3, int16_t torq4)
+{
+    uint8_t *tx_buffer = g_mf_broadcast_can_instance[can_bus - 1]->tx_buffer;
+    tx_buffer[0] = torq1 & 0xFF;
+    tx_buffer[1] = (torq1 >> 8) & 0xFF;
+    tx_buffer[2] = torq2 & 0xFF;
+    tx_buffer[3] = (torq2 >> 8) & 0xFF;
+    tx_buffer[4] = torq3 & 0xFF;
+    tx_buffer[5] = (torq3 >> 8) & 0xFF;
+    tx_buffer[6] = torq4 & 0xFF;
+    tx_buffer[7] = (torq4 >> 8) & 0xFF;
+
+    switch (can_bus)
+    {
+    case 1:
+        can1_broadcast_sending_flag = 1;
+        break;
+    case 2:
+        can2_broadcast_sending_flag = 1;
+        break;
+    default:
+    // log error
+        break;
+    }
+
+}
+
+// void LK_Motor_Status_Update(CAN_Instance_t *can_instance)
+// {
+//     if ((can_instance->can_bus == 1) && ((can_instance->rx_id == 0x147) || (can_instance->rx_id == 0x148))) {
+//         g_chassis.chassis_killed_by_referee = 0;
+//         Daemon_Reload(g_daemon_chassis_power_guard);
+//     }
+// }
+
 void MF_Motor_Decode(CAN_Instance_t *can_instance)
 {
+    // LK_Motor_Status_Update(can_instance);
     uint8_t *data = can_instance->rx_buffer;
     MF_Motor_Stats_t *motor_info = (MF_Motor_Stats_t *)can_instance->binding_motor_stats;
 
@@ -68,10 +129,19 @@ void MF_Motor_Decode(CAN_Instance_t *can_instance)
         motor_info->velocity = (data[5] << 8) + data[4];
         motor_info->current = (data[3] << 8) + data[2];
         motor_info->temp = data[1];
-        break;
+
+        if (motor_info->angle - motor_info->last_angle > MF9025_HALF_MAX_TICKS)
+        {
+            motor_info->total_turn--;
+        }
+        else if (motor_info->angle - motor_info->last_angle < -MF9025_HALF_MAX_TICKS)
+        {
+            motor_info->total_turn++;
+        }
+        motor_info->total_angle = (motor_info->total_turn + motor_info->angle / MF9025_MAX_TICKS) * 2 * PI;
+        motor_info->last_angle = motor_info->angle;
     }
 }
-
 void MF_Motor_EnableMotor(MF_Motor_Handle_t *motor)
 {
     // store local pointer to avoid multiple dereference
@@ -238,5 +308,13 @@ void MF_Motor_Send(void)
             CAN_Transmit(g_mf_motors[i]->can_instance); // send the data
             g_mf_motors[i]->send_pending_flag = 0;      // clear the flag
         }
+    }
+    if (can1_broadcast_sending_flag == 1) {
+        CAN_Transmit(g_mf_broadcast_can_instance[0]);
+        // can1_broadcast_sending_flag = 0;
+    }
+    if (can2_broadcast_sending_flag == 1) {
+        CAN_Transmit(g_mf_broadcast_can_instance[1]);
+        can2_broadcast_sending_flag = 0;
     }
 }

@@ -435,7 +435,12 @@ void DJI_Motor_Decode(CAN_Instance_t *can_instance)
     motor->current_torq = (int16_t)(data[4] << 8 | data[5]);
     motor->temp = data[6];
 
-    motor->absolute_angle_rad = motor->current_tick - motor->encoder_offset;
+    float absolute_angle_after_offset = motor->current_tick - motor->encoder_offset;
+    if (absolute_angle_after_offset < 0)
+    {
+        absolute_angle_after_offset += 8192;
+    }
+    motor->absolute_angle_rad = absolute_angle_after_offset;
     /* absolute angle */
     __MAP(motor->absolute_angle_rad, 0, 8192, 0, 2 * PI);
 

@@ -2,7 +2,7 @@
 #define ROBOT_PARAM_H
 
 #define DEBUG
-
+#define MASTER
 /* Motor ID */
 #define LEFT_FRONT_ID 0x00
 #define RIGHT_FRONT_ID 0x01
@@ -21,16 +21,17 @@
 #define MAX_YAW_VEL PI
 
 /* Robot Stats*/
-#define HALF_THIGH_DISTANCE 0.035f
-#define THIGH_LENGTH 0.14f
-#define CALF_LENGTH 0.24f
-#define TOE_WHEEL_RADIUS 0.06f // meter
+#define HALF_THIGH_DISTANCE 0.075f
+#define THIGH_LENGTH 0.15f
+#define CALF_LENGTH 0.27f
+#define FOOT_WHEEL_RADIUS (0.06f) // meter
+#define HALF_WHEEL_DISTANCE (0.20705f)
 
 /* Limit */
 #define THIGH_ANG_RANGE 45.0f //degree
 
 /* Control */
-#define INIT_CHASSIS_HEIGHT 0.16//0.144f
+#define INIT_CHASSIS_HEIGHT 0.18//0.144f
 #define INIT_CHASSIS_ANGLE 90.0f
 
 #endif

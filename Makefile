@@ -1,7 +1,7 @@
 ######################################
 # target
 ######################################
-TARGET = control-base
+TARGET = wlb
 
 BOARD = typec
 
@@ -113,8 +113,12 @@ src/algo/src/MahonyAHRS.c \
 src/algo/src/pid.c \
 src/algo/src/Swerve_Locomotion.c \
 src/algo/src/wheel_legged_locomotion.c \
-src/algo/src/leg.c \
+src/algo/src/five_bar_leg.c \
 src/algo/src/kalman_filter.c \
+src/algo/src/wlb_lqr_controller.c \
+src/algo/src/FusionAhrs.c \
+src/algo/src/FusionCompass.c \
+src/algo/src/FusionOffset.c \
 src/bsp/src/bsp_can.c \
 src/bsp/src/bsp_delay.c \
 src/bsp/src/bsp_daemon.c \
@@ -142,6 +146,7 @@ src/app/src/launch_task.c \
 src/app/src/debug_task.c \
 src/app/src/robot.c \
 src/app/src/ui_task.c \
+src/app/src/board_comm_task.c \
 src/ui/src/ui_interface.c \
 src/ui/src/ui_indicator_0_0.c \
 src/ui/src/ui_indicator_0_1.c \
@@ -154,7 +159,9 @@ src/ui/src/ui_indicator_0_7.c \
 src/ui/src/ui_indicator_0_8.c \
 src/ui/src/ui_indicator_0_9.c \
 src/ui/src/ui_indicator_0_10.c \
-src/ui/src/ui_indicator_1_0.c 
+src/ui/src/ui_indicator_0_11.c \
+src/ui/src/ui_indicator_1_0.c \
+src/ui/src/ui_indicator_1_1.c 
 
 # ASM sources
 ASM_SOURCES =  \
