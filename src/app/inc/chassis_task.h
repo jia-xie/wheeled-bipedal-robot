@@ -17,6 +17,7 @@ typedef struct chassis_s
     float angle_diff;
     float forward_speed;
     uint8_t chassis_killed_by_referee;
+    float roll_compensation_height;
 } Chassis_t;
 
 // Function prototypes

@@ -78,6 +78,7 @@ PID_t g_balance_angle_pid, g_balance_vel_pid;
 PID_t g_pid_yaw_angle;
 PID_t g_pid_anti_split;
 PID_t g_pid_follow_gimbal;
+PID_t g_pid_roll_compensation;
 Leg_t test = {
     .phi1 = PI,
     .phi4 = 0,
@@ -87,7 +88,7 @@ Leg_t test = {
 Daemon_Instance_t *g_daemon_chassis_power_guard;
 void _get_leg_statistics();
 void _wheel_leg_estimation(float robot_yaw, float robot_pitch, float robot_pitch_dot);
-void _leg_length_controller(float chassis_height);
+void _leg_length_controller(float chassis_height, float robot_roll);
 void _lqr_balancce_controller();
 void _vmc_torq_calc();
 float g_test_angle;
@@ -127,8 +128,8 @@ void _power_chassis_power_callback()
 void Chassis_Task_Init()
 {
     // uint16_t reload_value = CHASSIS_POWER_OFF_TIMEOUT_MS / DAEMON_PERIOD;
-	// uint16_t initial_counter = reload_value;
-	// g_daemon_chassis_power_guard = Daemon_Register(reload_value, initial_counter, _power_chassis_power_callback);
+    // uint16_t initial_counter = reload_value;
+    // g_daemon_chassis_power_guard = Daemon_Register(reload_value, initial_counter, _power_chassis_power_callback);
     // Initialize motors
     MF_Motor_Config_t motor_config = {
         .can_bus = 1,
@@ -158,8 +159,8 @@ void Chassis_Task_Init()
     PID_Init(&g_pid_left_leg_length, 8500.0f, 0.0f, 350.0f, 50.0f, 0.0f, 0.0f);
     PID_Init(&g_pid_right_leg_length, 8500.0f, 0.0f, 350.0f, 50.0f, 0.0f, 0.0f);
 
-    PID_Init(&g_pid_left_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
-    PID_Init(&g_pid_right_leg_angle, 15.0f, 0.0f, 5.75f, 10.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_left_leg_angle, 15.0f, 0.0f, 15.75f, 10.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_right_leg_angle, 15.0f, 0.0f, 15.75f, 10.0f, 0.0f, 0.0f);
 
     PID_Init(&g_balance_angle_pid, 600.0f, 0.0f, .065f, 10.0f, 0.0f, 0.0f);
     PID_Init(&g_balance_vel_pid, 10.0f, 0.0f, 0.001f, 10.0f, 0.0f, 0.0f);
@@ -167,8 +168,10 @@ void Chassis_Task_Init()
     PID_Init(&g_pid_yaw_angle, 5.0f, 0.0f, 1.1f, 10.0f, 0.0f, 0.0f);
     PID_Init(&g_pid_anti_split, 100.0f, 0.0f, 5.0f, 40.0f, 0.0f, 0.0f);
 
-    PID_Init(&g_pid_follow_gimbal, 8.0f, 0.0f, 0.95f, 6.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_follow_gimbal, 8.0f, 0.0f, 0.95f, 4.0f, 0.0f, 0.0f);
     g_robot_state.chassis_height = CHASSIS_DEFAULT_HEIGHT;
+
+    PID_Init(&g_pid_roll_compensation, 0.1f, 0.000f, 0.1f, 0.20f, 0.15f, 0.0f);
 
     xvEstimateKF_Init(&vaEstimateKF);
 }
@@ -180,10 +183,10 @@ uint8_t _is_turning()
 
 void _hip_motor_torq_ctrl(float torq_lf, float torq_lb, float torq_rb, float torq_rf)
 {
-    int16_t torq1 = torq_lf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
-    int16_t torq2 = torq_lb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
-    int16_t torq3 = torq_rb / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
-    int16_t torq4 = torq_rf / MG8016_TORQ_CONSTANT * (2048.0f / 16.5f);
+    int16_t torq1 = torq_lf / MG8016_TORQ_CONSTANT * (2048.0f / 33.0f);
+    int16_t torq2 = torq_lb / MG8016_TORQ_CONSTANT * (2048.0f / 33.0f);
+    int16_t torq3 = torq_rb / MG8016_TORQ_CONSTANT * (2048.0f / 33.0f);
+    int16_t torq4 = torq_rf / MG8016_TORQ_CONSTANT * (2048.0f / 33.0f);
     __MAX_LIMIT(torq1, -2000, 2000);
     __MAX_LIMIT(torq2, -2000, 2000);
     __MAX_LIMIT(torq3, -2000, 2000);
@@ -282,6 +285,7 @@ void _target_state_reset()
     g_lqr_right_state.target_x = g_lqr_right_state.x;
     g_robot_state.chassis_height = CHASSIS_DEFAULT_HEIGHT;
     g_chassis.target_yaw = g_chassis.current_yaw;
+    g_chassis.roll_compensation_height = 0;
 
     PID_Reset(&g_pid_left_leg_length);
     PID_Reset(&g_pid_right_leg_length);
@@ -289,6 +293,7 @@ void _target_state_reset()
     PID_Reset(&g_pid_right_leg_angle);
     PID_Reset(&g_balance_angle_pid);
     PID_Reset(&g_balance_vel_pid);
+    PID_Reset(&g_pid_roll_compensation);
 }
 
 void _target_state_update(float forward_speed, float turning_speed, float chassis_height)
@@ -303,13 +308,13 @@ void _target_state_update(float forward_speed, float turning_speed, float chassi
     g_lqr_left_state.target_x += g_lqr_left_state.target_x_dot * TASK_TIME;
     if (g_robot_state.spintop_mode)
     {
-    g_lqr_left_state.target_x_dot += g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
+        g_lqr_left_state.target_x_dot += g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
     }
     g_lqr_right_state.target_x_dot = g_chassis.target_vel; // + g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
     g_lqr_right_state.target_x += g_lqr_right_state.target_x_dot * TASK_TIME;
     if (g_robot_state.spintop_mode)
     {
-    g_lqr_right_state.target_x_dot -= g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE; // + g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
+        g_lqr_right_state.target_x_dot -= g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE; // + g_chassis.target_yaw_speed * HALF_WHEEL_DISTANCE;
     }
     // g_robot_state.chassis_height += remote->controller.right_stick.y / 660.0f * 0.2f * TASK_TIME;
     g_robot_state.chassis_height = chassis_height;
@@ -323,14 +328,32 @@ void _target_state_update(float forward_speed, float turning_speed, float chassi
     // __MAX_LIMIT(g_robot_state.chassis_height, 0.1f, 0.35f);
 }
 
-void _leg_length_controller(float chassis_height)
+void _leg_length_controller(float chassis_height, float robot_roll)
 {
     float feedforward_weight = 90.0f;
+    static float chassis_height_temp = CHASSIS_DEFAULT_HEIGHT;
     // g_leg_left.compensatioin_torq = -g_chassis.centripetal_force * 0.5f;
     // g_leg_right.compensatioin_torq = +g_chassis.centripetal_force * 0.5f;
+    static float target_roll = 30.0f;
 
-    g_leg_left.target_leg_virtual_force = PID_dt(&g_pid_left_leg_length, chassis_height - g_leg_left.length, TASK_TIME) + feedforward_weight;
-    g_leg_right.target_leg_virtual_force = PID_dt(&g_pid_right_leg_length, chassis_height - g_leg_right.length, TASK_TIME) + feedforward_weight;
+    if (g_remote.keyboard.E)
+    {
+        target_roll = -30.0 / 180.0f * PI;
+        chassis_height += 0.05f;
+    }
+    else if (g_remote.keyboard.Q)
+    {
+        target_roll = 30.0 / 180.0f * PI;
+        chassis_height += 0.05f;
+    }
+    else
+    {
+        target_roll = 0.0f;
+    }
+    chassis_height_temp = chassis_height_temp * 0.99f + 0.01f * chassis_height;
+    g_chassis.roll_compensation_height = (g_chassis.roll_compensation_height * 0.99f + 0.01f * PID(&g_pid_roll_compensation, robot_roll - target_roll));
+    g_leg_left.target_leg_virtual_force = PID_dt(&g_pid_left_leg_length, chassis_height_temp + g_chassis.roll_compensation_height - g_leg_left.length, TASK_TIME) + feedforward_weight;
+    g_leg_right.target_leg_virtual_force = PID_dt(&g_pid_right_leg_length, chassis_height_temp - g_chassis.roll_compensation_height - g_leg_right.length, TASK_TIME) + feedforward_weight;
     // g_leg_left.target_leg_virtual_force += g_leg_left.compensatioin_torq;
     // g_leg_right.target_leg_virtual_force += g_leg_right.compensatioin_torq;
     g_leg_left.target_leg_virtual_torq = -g_u_left.T_B;
@@ -354,8 +377,12 @@ void _lqr_balancce_controller()
 }
 void _vmc_torq_calc()
 {
-    Leg_VMC(&g_leg_left);
-    Leg_VMC(&g_leg_right);
+    Leg_VMC(&g_leg_left,
+            -g_motor_lb->stats->current * MG8016_CURRENT_INT_TO_TORQ_NM,
+            -g_motor_lf->stats->current * MG8016_CURRENT_INT_TO_TORQ_NM);
+    Leg_VMC(&g_leg_right,
+            -g_motor_rf->stats->current * MG8016_CURRENT_INT_TO_TORQ_NM,
+            -g_motor_rb->stats->current * MG8016_CURRENT_INT_TO_TORQ_NM);
 
     PID_dt(&g_pid_yaw_angle, g_chassis.current_yaw - g_chassis.target_yaw, TASK_TIME);
     g_u_left.T_A -= g_pid_yaw_angle.output;
@@ -440,7 +467,7 @@ void _chassis_cmd()
     }
     // g_chassis.angle_diff = g_chassis.angle_diff * 0.99f + 0.01f * ideal_angle_diff;
     g_chassis.angle_diff = ideal_angle_diff;
-        // Spintop vs Follow Gimbal
+    // Spintop vs Follow Gimbal
     if (g_robot_state.spintop_mode)
     {
         g_chassis.target_yaw_speed = g_chassis.target_yaw_speed * 0.9f + 0.1f * 6.0f;
@@ -464,7 +491,7 @@ void Chassis_Ctrl_Loop()
     _chassis_cmd();
     _wheel_leg_estimation(g_board_comm_package.yaw, g_board_comm_package.robot_pitch, g_board_comm_package.robot_pitch_rate);
     _target_state_update(g_chassis.forward_speed, g_chassis.target_yaw_speed, g_robot_state.chassis_height);
-    _leg_length_controller(g_robot_state.chassis_height);
+    _leg_length_controller(g_robot_state.chassis_height, g_board_comm_package.robot_roll);
     _lqr_balancce_controller();
     _vmc_torq_calc();
     if (last_spintop_mode == 1 && g_robot_state.spintop_mode == 0)

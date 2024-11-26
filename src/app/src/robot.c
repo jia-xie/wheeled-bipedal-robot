@@ -60,7 +60,7 @@ void Robot_Init()
     Launch_Task_Init();
     Remote_Init(&huart3);
     Referee_System_Init(&huart1);
-    Jetson_Orin_Init(&huart6);
+    // Jetson_Orin_Init(&huart6);
 #else
     Melody_t system_init_melody = {
         .notes = SYSTEM_READY,
@@ -205,22 +205,22 @@ void Robot_Cmd_Loop()
             else if (g_remote.controller.right_switch == MID)
             {
                 float yaw_increment;
-                if (g_remote.keyboard.Q == 1 && g_key_prev.prev_Q == 0 && fabs(g_robot_state.chassis_y_speed) < 0.4f)
-                {
-                    // -0.2 is to ensure q and e is turning it its desire direction, or angle wrapping will find the cloest way.
-                    yaw_increment = -PI + 0.2f;
-                    g_robot_state.gimbal_switching_dir_pending = 1;
-                }
-                else if (g_remote.keyboard.E == 1 && g_key_prev.prev_E == 0 && fabs(g_robot_state.chassis_y_speed) < 0.4f)
-                {
-                    yaw_increment = PI - 0.2f;
-                    g_robot_state.gimbal_switching_dir_pending = 1;
-                }
-                else
-                {
+                // if (g_remote.keyboard.Q == 1 && g_key_prev.prev_Q == 0 && fabs(g_robot_state.chassis_y_speed) < 0.4f)
+                // {
+                //     // -0.2 is to ensure q and e is turning it its desire direction, or angle wrapping will find the cloest way.
+                //     yaw_increment = -PI + 0.2f;
+                //     g_robot_state.gimbal_switching_dir_pending = 1;
+                // }
+                // else if (g_remote.keyboard.E == 1 && g_key_prev.prev_E == 0 && fabs(g_robot_state.chassis_y_speed) < 0.4f)
+                // {
+                //     yaw_increment = PI - 0.2f;
+                //     g_robot_state.gimbal_switching_dir_pending = 1;
+                // }
+                // else
+                // {
                     yaw_increment = (g_remote.controller.right_stick.x / 50000.0f + g_remote.mouse.x / 50000.0f);
                     yaw_increment = fabs(yaw_increment) > MAX_YAW_INCREMENT ? (fabs(yaw_increment) / (yaw_increment)) * MAX_YAW_INCREMENT : yaw_increment;
-                }
+                // }
                 g_robot_state.gimbal_yaw_angle -= yaw_increment;                                                                   // controller and mouse
                 g_robot_state.gimbal_pitch_angle -= (g_remote.controller.right_stick.y / 100000.0f - g_remote.mouse.y / 50000.0f); // controller and mouse
             }

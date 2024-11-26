@@ -36,28 +36,28 @@ void Launch_Task_Init() {
         .motor_reversal = MOTOR_REVERSAL_NORMAL,
         .velocity_pid =
             {
-                .kp = 500.0f,
+                .kp = 300.0f,
                 .output_limit = M3508_MAX_CURRENT,
             },
     };
 
     Motor_Config_t feed_speed_config = {
         .can_bus = 2,
-        .speed_controller_id = 6,
+        .speed_controller_id = 2,
         .offset = 0,
         .control_mode = VELOCITY_CONTROL | POSITION_CONTROL,
         .motor_reversal = MOTOR_REVERSAL_NORMAL,
         .velocity_pid =
             {
-                .kp = 500.0f,
-                .kd = 20.0f,
+                .kp = 200.0f,
+                .kd = 2000.0f,
                 .kf = 100.0f,
                 .output_limit = M2006_MAX_CURRENT,
             },
         .angle_pid =
             {
                 .kp = 5000.0f,
-                .kd = 3500000.0f,
+                .kd = 35000000.0f,
                 .ki = 0.1f,
                 .output_limit = M2006_MAX_CURRENT,
                 .integral_limit = 1000.0f,
@@ -72,11 +72,14 @@ void Launch_Task_Init() {
 void Launch_Ctrl_Loop() {
     if (g_robot_state.enabled) {
         if (g_launch_target.flywheel_enabled) {
-            g_launch_target.flywheel_velocity = FLYWHEEL_VELOCITY_30;
+            g_launch_target.flywheel_velocity = FLYWHEEL_VELOCITY_20;//FLYWHEEL_VELOCITY_LOW_FOR_DEBUG;
             DJI_Motor_Set_Velocity(g_flywheel_left,g_launch_target.flywheel_velocity);
             DJI_Motor_Set_Velocity(g_flywheel_right,g_launch_target.flywheel_velocity);
             Feed_Angle_Calc();
         } else {
+            g_launch_target.flywheel_velocity = 0;
+            // DJI_Motor_Set_Velocity(g_flywheel_left,g_launch_target.flywheel_velocity);
+            // DJI_Motor_Set_Velocity(g_flywheel_right,g_launch_target.flywheel_velocity);
             DJI_Motor_Disable(g_flywheel_left);
             DJI_Motor_Disable(g_flywheel_right);
             DJI_Motor_Disable(g_motor_feed);
@@ -122,7 +125,7 @@ void Feed_Angle_Calc()
             // if (g_launch_target.reverse_burst_launch_pending_flag)
             {
                 // g_launch_target.reverse_burst_launch_pending_flag = 0;
-                g_launch_target.feed_angle -= FEED_1_PROJECTILE_ANGLE;
+                g_launch_target.feed_angle -= 0.4f * FEED_1_PROJECTILE_ANGLE;
                 DJI_Motor_Set_Control_Mode(g_motor_feed, POSITION_CONTROL_TOTAL_ANGLE);
                 DJI_Motor_Set_Angle(g_motor_feed,g_launch_target.feed_angle);
             
