@@ -40,7 +40,7 @@ PID_t autoaim_pitch_velocity_pid = {
 void Gimbal_Task_Init()
 {
     Motor_Config_t yaw_motor_config = {
-        .can_bus = 1,
+        .can_bus = 2,
         .speed_controller_id = 6,
         .offset = 870,
         .control_mode = POSITION_VELOCITY_SERIES,
@@ -67,7 +67,7 @@ void Gimbal_Task_Init()
     };
 
     Motor_Config_t pitch_motor_config = {
-        .can_bus = 1,
+        .can_bus = 2,
         .speed_controller_id = 7,
         .offset = 6170,
         .use_external_feedback = 1,

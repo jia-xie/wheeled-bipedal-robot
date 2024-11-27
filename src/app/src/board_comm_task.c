@@ -23,9 +23,9 @@ void board_comm_recv_third_part(CAN_Instance_t *can_instance);
 void Board_Comm_Task_Init()
 {
     #ifdef MASTER
-    g_board_comm_part1 = CAN_Device_Register(1, 0x060, 0x050, board_comm_recv_first_part);
-    g_board_comm_part2 = CAN_Device_Register(1, 0x061, 0x051, board_comm_recv_second_part);
-    g_board_comm_part3 = CAN_Device_Register(1, 0x062, 0x052, board_comm_recv_third_part);
+    g_board_comm_part1 = CAN_Device_Register(2, 0x060, 0x050, board_comm_recv_first_part);
+    g_board_comm_part2 = CAN_Device_Register(2, 0x061, 0x051, board_comm_recv_second_part);
+    g_board_comm_part3 = CAN_Device_Register(2, 0x062, 0x052, board_comm_recv_third_part);
     #else
     #pragma message "Board_Comm_Task_Init() is compiled"
     g_board_comm_part1 = CAN_Device_Register(1, 0x050, 0x060, board_comm_recv_first_part);
