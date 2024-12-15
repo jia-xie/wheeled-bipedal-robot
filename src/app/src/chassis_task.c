@@ -55,7 +55,7 @@ const float vaEstimateKF_H[4] = {1.0f, 0.0f,
 #define DOWN_3 (26586.0f)
 #define DOWN_4 (47774.0f)
 
-#define FOOT_MOTOR_MAX_TORQ (2.4f)
+#define FOOT_MOTOR_MAX_TORQ (4.2f)
 #define FOOT_MF9025_MAX_TORQ_INT ((FOOT_MOTOR_MAX_TORQ / MF9025_TORQ_CONSTANT) / 16.5f * 2048.0f)
 #define CHASSIS_DEFAULT_HEIGHT (0.13f)
 
@@ -156,8 +156,8 @@ void Chassis_Task_Init()
     g_right_foot_motor = MF_Motor_Init(motor_config);
 
     MF_Motor_Broadcast_Init(1);
-    PID_Init(&g_pid_left_leg_length, 8500.0f, 0.0f, 350.0f, 50.0f, 0.0f, 0.0f);
-    PID_Init(&g_pid_right_leg_length, 8500.0f, 0.0f, 350.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_left_leg_length, 1500.0f, 0.0f, 200.0f, 50.0f, 0.0f, 0.0f);
+    PID_Init(&g_pid_right_leg_length, 1500.0f, 0.0f, 200.0f, 50.0f, 0.0f, 0.0f);
 
     PID_Init(&g_pid_left_leg_angle, 15.0f, 0.0f, 15.75f, 10.0f, 0.0f, 0.0f);
     PID_Init(&g_pid_right_leg_angle, 15.0f, 0.0f, 15.75f, 10.0f, 0.0f, 0.0f);
@@ -171,7 +171,7 @@ void Chassis_Task_Init()
     PID_Init(&g_pid_follow_gimbal, 8.0f, 0.0f, 0.95f, 4.0f, 0.0f, 0.0f);
     g_robot_state.chassis_height = CHASSIS_DEFAULT_HEIGHT;
 
-    PID_Init(&g_pid_roll_compensation, 0.1f, 0.000f, 0.1f, 0.20f, 0.15f, 0.0f);
+    PID_Init(&g_pid_roll_compensation, .8f, 0.0f, 18.1f, .2f, 0.15f, 0.0f);
 
     xvEstimateKF_Init(&vaEstimateKF);
 }
@@ -330,27 +330,31 @@ void _target_state_update(float forward_speed, float turning_speed, float chassi
 
 void _leg_length_controller(float chassis_height, float robot_roll)
 {
-    float feedforward_weight = 90.0f;
+    float feedforward_weight = 95.0f;
     static float chassis_height_temp = CHASSIS_DEFAULT_HEIGHT;
     // g_leg_left.compensatioin_torq = -g_chassis.centripetal_force * 0.5f;
     // g_leg_right.compensatioin_torq = +g_chassis.centripetal_force * 0.5f;
     static float target_roll = 30.0f;
+    UNUSED(chassis_height);
 
+    static float chassis_height_cmd = CHASSIS_DEFAULT_HEIGHT;
     if (g_remote.keyboard.E)
     {
         target_roll = -30.0 / 180.0f * PI;
-        chassis_height += 0.05f;
+        chassis_height_cmd += 0.05f;
     }
     else if (g_remote.keyboard.Q)
     {
         target_roll = 30.0 / 180.0f * PI;
-        chassis_height += 0.05f;
+        chassis_height_cmd += 0.05f;
     }
     else
     {
         target_roll = 0.0f;
     }
-    chassis_height_temp = chassis_height_temp * 0.99f + 0.01f * chassis_height;
+    chassis_height_cmd += g_remote.controller.wheel / 660.0f * 0.5f * TASK_TIME;
+    __MAX_LIMIT(chassis_height_cmd, 0.08f, 0.39f);
+    chassis_height_temp = chassis_height_temp * 0.99f + 0.01f * chassis_height_cmd;
     g_chassis.roll_compensation_height = (g_chassis.roll_compensation_height * 0.99f + 0.01f * PID(&g_pid_roll_compensation, robot_roll - target_roll));
     g_leg_left.target_leg_virtual_force = PID_dt(&g_pid_left_leg_length, chassis_height_temp + g_chassis.roll_compensation_height - g_leg_left.length, TASK_TIME) + feedforward_weight;
     g_leg_right.target_leg_virtual_force = PID_dt(&g_pid_right_leg_length, chassis_height_temp - g_chassis.roll_compensation_height - g_leg_right.length, TASK_TIME) + feedforward_weight;

@@ -25,7 +25,7 @@ extern DJI_Motor_Handle_t *g_yaw;
 #define KEYBOARD_RAMP_COEF (0.005f)
 #define SPINTOP_COEF (0.003f)
 #define CONTROLLER_RAMP_COEF (0.8f)
-#define MAX_SPEED (1.2f)
+#define MAX_SPEED (2.0f)
 
 Robot_State_t g_robot_state = {0, 0};
 float g_chassis_height_arr[4] = {0.13f, 0.20f, 0.28f, 0.35f};
