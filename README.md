@@ -3,7 +3,7 @@ This repository contains the control code for wheeled bipedal robot (WBR).
 
 ## Demonstration
 <div align="center">
-  <img src="asset/demo_1_ramp.gif" alt="GIF 1" width="70%">
+  <img src="asset/demo_1_ramp.gif" alt="GIF 1" width="60%">
 </div>
 
 <div align="center">
