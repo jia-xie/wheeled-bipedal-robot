@@ -2,20 +2,23 @@
 This repository contains the control code for wheeled bipedal robot (WBR).
 
 ## Demonstration
-<div style="text-align: center; margin-bottom: 20px;">
-    <img src="asset/demo_1_ramp.gif" alt="GIF 1" style="max-width: 48%; height: auto;">
+<div align="center">
+  <img src="asset/demo_1_ramp.gif" alt="GIF 1" width="70%">
 </div>
-<div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
-    <img src="asset/demo_2_disturbance_rejection.gif" alt="GIF 2" style="max-width: 48%; height: auto;">
-    <img src="asset/demo_6_failure_case.gif" alt="GIF 3" style="max-width: 48%; height: auto;">
+
+<div align="center">
+  <img src="asset/demo_2_disturbance_rejection.gif" alt="GIF 2" width="45%">
+  <img src="asset/demo_6_failure_case.gif" alt="GIF 3" width="45%">
 </div>
-<div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
-    <img src="asset/demo_3_go_down_stairs.gif" alt="GIF 2" style="max-width: 48%; height: auto;">
-    <img src="asset/demo_4_leg_adaptation.gif" alt="GIF 3" style="max-width: 48%; height: auto;">
+
+<div align="center">
+  <img src="asset/demo_3_go_down_stairs.gif" alt="GIF 4" width="45%">
+  <img src="asset/demo_4_leg_adaptation.gif" alt="GIF 5" width="45%">
 </div>
-<div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
-    <img src="asset/demo_5_slippage_resistance.gif" alt="GIF 2" style="max-width: 48%; height: auto;">
-    <img src="asset/demo_7_failure_case_slipping.gif" alt="GIF 3" style="max-width: 48%; height: auto;">
+
+<div align="center">
+  <img src="asset/demo_5_slippage_resistance.gif" alt="GIF 6" width="45%">
+  <img src="asset/demo_7_failure_case_slipping.gif" alt="GIF 7" width="45%">
 </div>
 
 
